@@ -17,9 +17,10 @@ use strict;
 use warnings FATAL => 'all';
 use Exporter 'import';
 use Scalar::Util 'looks_like_number';
-use publiccloud::utils;
+use publiccloud::instance;
 use publiccloud::provider;
 use publiccloud::ssh_interactive 'select_host_console';
+use publiccloud::utils;
 use testapi;
 use List::MoreUtils qw(uniq);
 use utils 'file_content_replace';
@@ -27,7 +28,6 @@ use Carp qw(croak);
 use hacluster;
 use qesapdeployment;
 use YAML::PP;
-use publiccloud::instance;
 use sles4sap;
 use saputils;
 
@@ -92,7 +92,7 @@ sub run_cmd {
     delete($args{timeout});
     delete($args{runas});
 
-    $self->{my_instance}->wait_for_ssh(timeout => $timeout);
+    $self->{my_instance}->wait_for_ssh(timeout => $timeout, systemup_check => 1);
     my $out = $self->{my_instance}->run_ssh_command(cmd => "sudo $cmd", timeout => $timeout, %args);
     record_info("$title output - $self->{my_instance}->{instance_id}", $out) unless ($timeout == 0 or $args{quiet} or $args{rc_only});
     return $out;
@@ -282,7 +282,7 @@ sub stop_hana {
     record_info("Stopping HANA", "CMD:$cmd");
     if ($method eq "crash") {
         # Crash needs to be executed as root and wait for host reboot
-        $self->{my_instance}->wait_for_ssh(timeout => $timeout);
+        $self->{my_instance}->wait_for_ssh(timeout => $timeout, systemup_check => 1);
         $self->{my_instance}->run_ssh_command(cmd => "sudo su -c sync", timeout => "0", %args);
         $self->{my_instance}->run_ssh_command(cmd => 'sudo su -c "' . $cmd . '"',
             timeout => "0",
@@ -294,7 +294,7 @@ sub stop_hana {
         my $out = $self->{my_instance}->wait_for_ssh(timeout => 60, wait_stop => 1);
         record_info("Wait ssh disappear end", "$out") if (defined $out);
         sleep 10;
-        $self->{my_instance}->wait_for_ssh();
+        $self->{my_instance}->wait_for_ssh(timeout => $timeout, systemup_check => 1);
         return ();
     }
     else {
