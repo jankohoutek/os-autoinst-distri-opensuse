@@ -40,12 +40,14 @@
       <li><a href="#ipaddr2_registeration_check">ipaddr2_registeration_check</a></li>
       <li><a href="#ipaddr2_registeration_set">ipaddr2_registeration_set</a></li>
       <li><a href="#ipaddr2_configure_web_server">ipaddr2_configure_web_server</a></li>
+      <li><a href="#ipaddr2_refresh_repo">ipaddr2_refresh_repo</a></li>
       <li><a href="#ipaddr2_deployment_logs">ipaddr2_deployment_logs</a></li>
       <li><a href="#ipaddr2_destroy">ipaddr2_destroy</a></li>
       <li><a href="#ipaddr2_get_internal_vm_name">ipaddr2_get_internal_vm_name</a></li>
       <li><a href="#ipaddr2_get_internal_vm_private_ip">ipaddr2_get_internal_vm_private_ip</a></li>
       <li><a href="#ipaddr2_get_worker_tmp_for_internal_vm">ipaddr2_get_worker_tmp_for_internal_vm</a></li>
       <li><a href="#ipaddr2_crm_move">ipaddr2_crm_move</a></li>
+      <li><a href="#ipaddr2_crm_clear">ipaddr2_crm_clear</a></li>
       <li><a href="#ipaddr2_wait_for_takeover">ipaddr2_wait_for_takeover</a></li>
       <li><a href="#ipaddr2_get_web">ipaddr2_get_web</a></li>
       <li><a href="#ipaddr2_test_master_vm">ipaddr2_test_master_vm</a></li>
@@ -93,6 +95,10 @@
 
 </dd>
 <dt id="cloudinit---enable-cloud-init-features-if-1.-This-feature-is-used-to-install-the-web-server-using-cloud-init-by-providing-an-external-cloud-init-config-file.-This-feature-cannot-be-used-for-BYOS-images-as-installing-additional-packages-is-not-supported-before-the-image-registration.-This-feature-could-be-problematic-when-testing-maintenance-update:-problem-is-that-the-config-file-also-perform-a-zypper-patch-.-It-happens-at-the-first-boot-during-the-deployment-so-before-any-other-part-of-the-test-can-add-additional-repo-to-test"><b>cloudinit</b> - enable cloud-init features if 1. This feature is used to install the web server using cloud-init, by providing an external cloud-init config file. This feature cannot be used for BYOS images as installing additional packages is not supported before the image registration. This feature could be problematic when testing maintenance update: problem is that the config file also perform a `zypper patch`. It happens at the first boot during the deployment so before any other part of the test can add additional repo to test.</dt>
+<dd>
+
+</dd>
+<dt id="trusted_launch---Enable-or-disable-Trusted-Launch.-Default-1:-Enabled.-If-configured-to-0-the-result-in-az-vm-create-is-executed-with---security-type-Standard"><b>trusted_launch</b> - Enable or disable Trusted Launch. Default 1: Enabled. If configured to 0 the result in az vm create is executed with &#39;--security-type Standard&#39;</dt>
 <dd>
 
 </dd>
@@ -148,6 +154,10 @@
 <dd>
 
 </dd>
+<dt id="key_checking---optional-parameter-allow-to-tune-value-for-StrictHostKeyChecking-ssh-option.-default-to-accept-new"><b>key_checking</b> - optional parameter allow to tune value for StrictHostKeyChecking ssh option. default to &#39;accept-new&#39;</dt>
+<dd>
+
+</dd>
 </dl>
 
 <h2 id="ipaddr2_internal_key_gen">ipaddr2_internal_key_gen</h2>
@@ -159,6 +169,10 @@
 <dl>
 
 <dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it3"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+<dt id="key_checking---optional-parameter-allow-to-tune-value-for-StrictHostKeyChecking-ssh-option.-default-to-accept-new1"><b>key_checking</b> - optional parameter allow to tune value for StrictHostKeyChecking ssh option. default to &#39;accept-new&#39;</dt>
 <dd>
 
 </dd>
@@ -489,6 +503,20 @@
 </dd>
 </dl>
 
+<h2 id="ipaddr2_refresh_repo">ipaddr2_refresh_repo</h2>
+
+<pre><code>ipaddr2_refresh_repo(id =&gt; 1);</code></pre>
+
+<p>Call zypper refresh</p>
+
+<dl>
+
+<dt id="id---VM-id-where-to-install-and-configure-the-web-server3"><b>id</b> - VM id where to install and configure the web server</dt>
+<dd>
+
+</dd>
+</dl>
+
 <h2 id="ipaddr2_deployment_logs">ipaddr2_deployment_logs</h2>
 
 <pre><code>ipaddr2_deployment_logs()</code></pre>
@@ -547,7 +575,29 @@
 <dd>
 
 </dd>
+<dt id="id---VM-id-where-to-run-the-command-not-so-important-as-long-as-it-is-in-the-cluster.-Default-1"><b>id</b> - VM id where to run the command, not so important as long as it is in the cluster. Default 1.</dt>
+<dd>
+
+</dd>
 <dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it21"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_crm_clear">ipaddr2_crm_clear</h2>
+
+<pre><code>ipaddr2_crm_clear();</code></pre>
+
+<p>clear all location constrain used during the test</p>
+
+<dl>
+
+<dt id="id---VM-id-where-to-run-the-command-not-so-important-as-long-as-it-is-in-the-cluster.-Default-11"><b>id</b> - VM id where to run the command, not so important as long as it is in the cluster. Default 1.</dt>
+<dd>
+
+</dd>
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it22"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
 <dd>
 
 </dd>
@@ -565,7 +615,7 @@
 <dd>
 
 </dd>
-<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it22"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it23"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
 <dd>
 
 </dd>
@@ -587,7 +637,7 @@
 <dd>
 
 </dd>
-<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it23"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it24"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
 <dd>
 
 </dd>
@@ -605,7 +655,7 @@
 <dd>
 
 </dd>
-<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it24"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it25"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
 <dd>
 
 </dd>
@@ -623,7 +673,7 @@
 <dd>
 
 </dd>
-<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it25"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it26"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
 <dd>
 
 </dd>
