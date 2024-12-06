@@ -44,6 +44,7 @@
       <li><a href="#az_nic_name_get">az_nic_name_get</a></li>
       <li><a href="#az_ipconfig_name_get">az_ipconfig_name_get</a></li>
       <li><a href="#az_ipconfig_update">az_ipconfig_update</a></li>
+      <li><a href="#az_ipconfig_delete">az_ipconfig_delete</a></li>
       <li><a href="#az_ipconfig_pool_add">az_ipconfig_pool_add</a></li>
       <li><a href="#az_vm_diagnostic_log_enable">az_vm_diagnostic_log_enable</a></li>
       <li><a href="#az_vm_diagnostic_log_get">az_vm_diagnostic_log_get</a></li>
@@ -55,6 +56,13 @@
       <li><a href="#az_resource_delete">az_resource_delete</a></li>
       <li><a href="#az_resource_list">az_resource_list</a></li>
       <li><a href="#az_validate_uuid_pattern">az_validate_uuid_pattern</a></li>
+      <li><a href="#az_storage_blob_upload">az_storage_blob_upload</a></li>
+      <li><a href="#az_storage_blob_lease_acquire">az_storage_blob_lease_acquire</a></li>
+      <li><a href="#az_storage_blob_list">az_storage_blob_list</a></li>
+      <li><a href="#az_storage_blob_update">az_storage_blob_update</a></li>
+      <li><a href="#az_keyvault_list">az_keyvault_list</a></li>
+      <li><a href="#az_keyvault_secret_list">az_keyvault_secret_list</a></li>
+      <li><a href="#az_keyvault_secret_show">az_keyvault_secret_show</a></li>
     </ul>
   </li>
 </ul><h1>lib/sles4sap/azure_cli.pm</h1>
@@ -797,6 +805,31 @@
 </dd>
 </dl>
 
+<h2 id="az_ipconfig_delete">az_ipconfig_delete</h2>
+
+<pre><code>az_ipconfig_delete(
+    resource_group =&gt; &#39;openqa-rg&#39;,
+    ipconfig_name =&gt; &#39;openqa-ipconfig&#39;,
+    nic_name =&gt; &#39;openqa-nic&#39;)</code></pre>
+
+<p>Delete a specific IpConfig to use a static IP</p>
+
+<dl>
+
+<dt id="resource_group---existing-resource-group1"><b>resource_group</b> - existing resource group</dt>
+<dd>
+
+</dd>
+<dt id="ipconfig_name---existing-IP-configuration-NAME-eg.-from-az_ipconfig_name_get1"><b>ipconfig_name</b> - existing IP configuration NAME (eg. from az_ipconfig_name_get)</dt>
+<dd>
+
+</dd>
+<dt id="nic_name---existing-NIC-NAME-eg.-from-az_nic_name_get1"><b>nic_name</b> - existing NIC NAME (eg. from az_nic_name_get)</dt>
+<dd>
+
+</dd>
+</dl>
+
 <h2 id="az_ipconfig_pool_add">az_ipconfig_pool_add</h2>
 
 <pre><code>az_ipconfig_pool_add(
@@ -810,7 +843,7 @@
 
 <dl>
 
-<dt id="resource_group---existing-resource-group1"><b>resource_group</b> - existing resource group</dt>
+<dt id="resource_group---existing-resource-group2"><b>resource_group</b> - existing resource group</dt>
 <dd>
 
 </dd>
@@ -932,7 +965,7 @@
 
 <pre><code>my $res = az_network_peering_list(
     resource_group =&gt; &#39;openqa-rg&#39;,
-    vnet =&gt; &#39;openqa-this-vnet&#39;)</code></pre>
+    vnet =&gt; &#39;openqa-this-vnet&#39; [, query=&gt;&#39;[].name&#39;])</code></pre>
 
 <p>Return HASH representing existing net peering</p>
 
@@ -1067,6 +1100,187 @@ returns uuid (true) on match, 0 (false) on mismatch.</code></pre>
 <dl>
 
 <dt id="uuid-UUID-string-to-test"><b>uuid</b> UUID string to test.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_storage_blob_upload">az_storage_blob_upload</h2>
+
+<pre><code>az_storage_blob_upload(
+    container_name=&gt;&#39;somecontainer&#39;,
+    storage_account_name=&gt;&#39;storageaccount&#39;,
+    file=&gt;&#39;somefilename&#39; [, timeout=&gt;42]);</code></pre>
+
+<p>Uploads file to a storage container.</p>
+
+<dl>
+
+<dt id="container_name-Existing-storage-container-name"><b>container_name</b> Existing storage container name.</dt>
+<dd>
+
+</dd>
+<dt id="storage_account_name-Storage-account-name"><b>storage_account_name</b> Storage account name.</dt>
+<dd>
+
+</dd>
+<dt id="file-File-to-upload"><b>file</b> File to upload.</dt>
+<dd>
+
+</dd>
+<dt id="timeout-Timeout-for-az-command.-Default:-90s"><b>timeout</b> Timeout for az command. Default: 90s</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_storage_blob_lease_acquire">az_storage_blob_lease_acquire</h2>
+
+<pre><code>az_storage_blob_lease_acquire(
+    container_name=&gt;&#39;somecontainer&#39;,
+    storage_account_name=&gt;&#39;storageaccount&#39;,
+    blob_name =&gt; &#39;somefilename&#39; [, lease_duration=&gt;&#39;42&#39;]
+);</code></pre>
+
+<p>Acquire a lease for a storage blob. Function returns UUID which is then required to modify the file and gives the UUID owner exclusive rights. Optionally <b>lease_duration</b> can be defined to limit this file lock up to 60s instead of infinity. In case of function returns nothing, the reasons may vary and it is up to caller to decide how to deal with the result. In that case Possible reasons are that there is already a lease present (az cli returns a message which is not a valid UUID)</p>
+
+<dl>
+
+<dt id="container_name-Existing-storage-container-name1"><b>container_name</b> Existing storage container name.</dt>
+<dd>
+
+</dd>
+<dt id="storage_account_name-Storage-account-name1"><b>storage_account_name</b> Storage account name.</dt>
+<dd>
+
+</dd>
+<dt id="blob_name-Blob-name-to-acquire-lease-for"><b>blob_name</b> Blob name to acquire lease for.</dt>
+<dd>
+
+</dd>
+<dt id="lease_duration-Lease-duration-between-15-60s.-Default:-infinite"><b>lease_duration</b> Lease duration between 15-60s. Default: infinite</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_storage_blob_list">az_storage_blob_list</h2>
+
+<pre><code>az_storage_blob_list(
+    container_name=&gt;&#39;somecontainer&#39;,
+    storage_account_name=&gt;&#39;storageaccount&#39; [, query=&gt;&#39;[].name&#39;]
+);</code></pre>
+
+<p>List information about storage blob(s) specified by <b>storage_account_name</b>, <b>container_name</b> and <b>query</b>.</p>
+
+<dl>
+
+<dt id="container_name-Existing-storage-container-name2"><b>container_name</b> Existing storage container name.</dt>
+<dd>
+
+</dd>
+<dt id="storage_account_name-Storage-account-name2"><b>storage_account_name</b> Storage account name.</dt>
+<dd>
+
+</dd>
+<dt id="query-Query-in-jmespath-format"><b>query</b> Query in jmespath format</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_storage_blob_update">az_storage_blob_update</h2>
+
+<pre><code>az_storage_blob_update(container_name=&gt;&#39;container&#39;, account_name=&gt;&#39;stuff&#39;, name=&#39;blobby&#39; [, lease_id=42]);</code></pre>
+
+<p>Update properties of storage blob. Returns az cli command exit code.</p>
+
+<dl>
+
+<dt id="container_name-Existing-resource-group-name"><b>container_name</b> Existing resource group name.</dt>
+<dd>
+
+</dd>
+<dt id="account_name-Name-of-the-resource-to-delete"><b>account_name</b> Name of the resource to delete</dt>
+<dd>
+
+</dd>
+<dt id="name-Blob-name"><b>name</b> Blob name</dt>
+<dd>
+
+</dd>
+<dt id="lease_id-Lease-id-in-case-there-is-a-lease-put-on-a-file"><b>lease_id</b> Lease id in case there is a lease put on a file</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_keyvault_list">az_keyvault_list</h2>
+
+<pre><code>az_keyvault_list(resource_group=&gt;&#39;resource group&#39; [, query=&gt;&#39;[].id&#39;]);</code></pre>
+
+<p>Lists all keyvault resource names located in specified resource group. Output can be modified using <b>query</b> argument.</p>
+
+<dl>
+
+<dt id="resource_group-Existing-resource-group-name3"><b>resource_group</b> Existing resource group name.</dt>
+<dd>
+
+</dd>
+<dt id="query-Modify-output-filter-using-jmespath-query"><b>query</b> Modify output filter using jmespath query</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_keyvault_secret_list">az_keyvault_secret_list</h2>
+
+<pre><code>az_keyvault_secret_list(vault_name=&gt;&#39;Gringotts&#39; [, query=&gt;&#39;[].id&#39;]);</code></pre>
+
+<p>Lists all keyvault secret names located in specified keyvault. Output can be modified using <b>query</b> argument.</p>
+
+<dl>
+
+<dt id="vault_name-Existing-keyvault-name"><b>vault_name</b> Existing keyvault name.</dt>
+<dd>
+
+</dd>
+<dt id="query-Modify-output-filter-using-jmespath-query1"><b>query</b> Modify output filter using jmespath query</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_keyvault_secret_show">az_keyvault_secret_show</h2>
+
+<pre><code>az_keyvault_secret_show(id=&gt;&#39;someid&#39;
+    [, name=&gt;&#39;Vault 713&#39;, vault_name=&gt;&#39;Gringotts&#39;, query=&gt;&#39;[].id&#39;, output=&gt;&#39;json&#39;, save_to_file=&gt;&#39;/alohomora&#39;]);</code></pre>
+
+<p>Lists all keyvault secret names located in specified keyvault. Output can be modified using <b>query</b> argument.</p>
+
+<dl>
+
+<dt id="id-Existing-secret-resource-ID.-name-and-vault_name-not-needed-if-this-is-specified"><b>id</b> Existing secret resource ID. <b>name</b> and <b>vault_name</b> not needed if this is specified.</dt>
+<dd>
+
+</dd>
+<dt id="name-Existing-secret-name.-Required-if-id-not-used"><b>name</b> Existing secret name. Required if <b>id</b> not used.</dt>
+<dd>
+
+</dd>
+<dt id="vault_name-Existing-keyvault-name.-Required-if-id-not-used"><b>vault_name</b> Existing keyvault name. Required if <b>id</b> not used.</dt>
+<dd>
+
+</dd>
+<dt id="query-Modify-output-filter-using-jmespath-query.-Default:-value"><b>query</b> Modify output filter using jmespath query. Default: value</dt>
+<dd>
+
+</dd>
+<dt id="output-Output-format.-Allowed-values:-json-tsv.-Default:-tsv"><b>output</b> Output format. Allowed values: json, tsv. Default: tsv.</dt>
+<dd>
+
+</dd>
+<dt id="save_to_file-Save-output-to-a-file-specified.-This-can-be-used-to-prevent-the-secret-being-shown-in-OpenQA-outputs.-Default:-undefined-false"><b>save_to_file</b> Save output to a file specified. This can be used to prevent the secret being shown in OpenQA outputs. Default: undefined/false</dt>
 <dd>
 
 </dd>
