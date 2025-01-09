@@ -619,6 +619,7 @@ sub wait_for_sync {
     my $timeout = bmwqemu::scale_timeout($args{timeout} // 900);
     my $online_str = check_version('>=2.1.7', $self->pacemaker_version()) ? '[1-9]+' : 'online';
     my $output_pass = 0;
+    my $showattr_cmd = get_var('USE_SAP_HANA_SR_ANGI') ? 'SAPHanaSR-showAttr-legacy' : 'SAPHanaSR-showAttr';
 
     record_info('Sync wait', "Waiting for data sync between nodes. online_str=$online_str timeout=$timeout");
 
@@ -633,7 +634,7 @@ sub wait_for_sync {
     }
     if ($output_pass < 5) {
         record_info("Cluster status", $self->run_cmd(cmd => $crm_mon_cmd));
-        record_info("Sync FAIL", "Host replication status: " . $self->run_cmd(cmd => 'SAPHanaSR-showAttr'));
+        record_info("Sync FAIL", "Host replication status: " . $self->run_cmd(cmd => $showattr_cmd));
         die("Replication SYNC did not finish within defined timeout. ($timeout sec).");
     }
 }
@@ -1075,12 +1076,13 @@ sub create_hana_vars_section {
 sub display_full_status {
     my ($self) = @_;
     my $vm_name = $self->{my_instance}{instance_id};
+    my $showattr_cmd = get_var('USE_SAP_HANA_SR_ANGI') ? 'SAPHanaSR-showAttr-legacy' : 'SAPHanaSR-showAttr';
     my $final_message = join("\n", "### CRM STATUS ###",
         $self->run_cmd(cmd => 'crm status', proceed_on_failure => 1),
         "### CRM MON ###",
         $self->run_cmd(cmd => $crm_mon_cmd, proceed_on_failure => 1),
         "### HANA REPLICATION INFO ###",
-        $self->run_cmd(cmd => 'SAPHanaSR-showAttr', proceed_on_failure => 1));
+        $self->run_cmd(cmd => $showattr_cmd, proceed_on_failure => 1));
 
     record_info("STATUS $vm_name", $final_message);
 }
@@ -1241,9 +1243,9 @@ sub pacemaker_version {
 
 sub saphanasr_showAttr_version {
     my ($self) = @_;
-    my $version_cmd = 'SAPHanaSR-showAttr --version';
+    my $showattr_cmd = get_var('USE_SAP_HANA_SR_ANGI') ? 'SAPHanaSR-showAttr-legacy' : 'SAPHanaSR-showAttr';
 
-    my $version_output = $self->run_cmd(cmd => $version_cmd, quiet => 1);
+    my $version_output = $self->run_cmd(cmd => "$showattr_cmd --version", quiet => 1);
 
     if ($version_output =~ /(\d+\.\d+(?:\.\d+)*)/) {
         return $1;
@@ -1363,13 +1365,14 @@ sub wait_for_zypper {
 sub wait_for_idle {
     my ($self, %args) = @_;
     my $timeout = $args{timeout} // 240;
+    my $showattr_cmd = get_var('USE_SAP_HANA_SR_ANGI') ? 'SAPHanaSR-showAttr-legacy' : 'SAPHanaSR-showAttr';
 
     my $rc = $self->run_cmd(cmd => 'cs_wait_for_idle --sleep 5', timeout => $timeout, rc_only => 1, proceed_on_failure => 1);
     if ($rc == 124) {
         record_info("WARN cs_wait_for_idle", "cs_wait_for_idle timed out after $timeout. Gathering info and retrying");
         $self->run_cmd(cmd => 'cs_clusterstate', proceed_on_failure => 1);
         $self->run_cmd(cmd => 'crm_mon -r -R -n -N -1', proceed_on_failure => 1);
-        $self->run_cmd(cmd => 'SAPHanaSR-showAttr', proceed_on_failure => 1);
+        $self->run_cmd(cmd => $showattr_cmd, proceed_on_failure => 1);
         # Run again, but allow to fail this time
         $self->run_cmd(cmd => 'cs_wait_for_idle --sleep 5', timeout => $timeout);
     } elsif ($rc != 0) {
