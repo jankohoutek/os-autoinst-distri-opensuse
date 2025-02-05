@@ -39,7 +39,7 @@ like other baseclass or testapi. Avoid using get_var/set_var at this level.
 =head2 calculate_hana_topology
     calculate_hana_topology(input => $saphanasr_showAttr_format_script_output);
 
-    Expect `SAPHanaSR-showAttr --format=script` as input.
+    Expect `SAPHanaSR-showAttr --format=[scripti|tester]` as input.
     Parses this input, returns a hash of hashes containing values for each host.
 
     Output like:
@@ -65,7 +65,7 @@ like other baseclass or testapi. Avoid using get_var/set_var at this level.
 
 =over 1
 
-=item B<input> - stdout of 'SAPHanaSR-showAttr --format=script'
+=item B<input> - stdout of 'SAPHanaSR-showAttr --format=[script|tester]'
 
 =back
 =cut

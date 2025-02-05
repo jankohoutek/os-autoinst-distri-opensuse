@@ -245,7 +245,8 @@ sub sles4sap_cleanup {
 sub get_hana_topology {
     my ($self) = @_;
     $self->wait_for_idle(timeout => 240);
-    my $cmd_out = $self->run_cmd(cmd => 'SAPHanaSR-showAttr --format=script', quiet => 1);
+    my $showattr_format = get_var('USE_SAP_HANA_SR_ANGI') ? 'tester' : 'script';
+    my $cmd_out = $self->run_cmd(cmd => "SAPHanaSR-showAttr --format=$showattr_format", quiet => 1);
     return calculate_hana_topology(input => $cmd_out);
 }
 
@@ -1240,7 +1241,7 @@ sub pacemaker_version {
 
 sub saphanasr_showAttr_version {
     my ($self) = @_;
-    my $version_cmd = 'SAPHanaSR-showAttr --version';
+    my $version_cmd = get_var('USE_SAP_HANA_SR_ANGI') ? 'rpm -qv SAPHanaSR-angi | cut -d"-" -f 3' : 'SAPHanaSR-showAttr --version';
 
     my $version_output = $self->run_cmd(cmd => $version_cmd, quiet => 1);
 
