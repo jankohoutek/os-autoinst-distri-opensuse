@@ -1,6 +1,6 @@
 # SUSE's openQA tests
 #
-# Copyright 2017-2024 SUSE LLC
+# Copyright 2017-2025 SUSE LLC
 # SPDX-License-Identifier: FSFAP
 #
 # Summary: Functions for SAP tests
@@ -75,6 +75,11 @@ sub calculate_hana_topology {
     my (%args) = @_;
     croak("Argument <input> missing") unless $args{input};
     my %topology;
+    my @hosts_parameters;
+    my @sites_parameters;
+    my @all_hosts;
+    my @all_sites;
+
     if (get_var('USE_SAP_HANA_SR_ANGI')) {
         my @hosts_parameters = map { if (/^Host/) { s,Host/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
         my @sites_parameters = map { if (/^Site/) { s,Site/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
