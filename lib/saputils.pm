@@ -76,21 +76,17 @@ sub calculate_hana_topology {
     my (%args) = @_;
     croak("Argument <input> missing") unless $args{input};
     my %topology;
-    my @hosts_parameters;
-    my @sites_parameters;
-    my @all_hosts;
-    my @all_sites;
     my $calc_param = get_var('USE_SAP_HANA_SR_ANGI') ? "Site" : "Hosts";
 
-    my @hosts_parameters = map { if (/^$calc_param/) { s,$calc_param/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
-    my @all_hosts = uniq map { (split("/", $_))[0] } @hosts_parameters;
+    my @all_parameters = map { if (/^$calc_param/) { s,$calc_param/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
+    my @all_hosts = uniq map { (split("/", $_))[0] } @all_parameters;
 
     for my $host (@all_hosts) {
         # Only takes parameter and value for lines about one specific host at time
         my %host_parameters = map {
             my ($node, $parameter, $value) = split(/[\/=]/, $_);
             if ($host eq $node) { ($parameter, $value) } else { () }
-        } @hosts_parameters;
+        } @all_parameters;
         $topology{$host} = \%host_parameters;
     }
 
