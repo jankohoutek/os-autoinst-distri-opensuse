@@ -75,17 +75,38 @@ sub calculate_hana_topology {
     my (%args) = @_;
     croak("Argument <input> missing") unless $args{input};
     my %topology;
-    my @all_parameters = map { if (/^Hosts/) { s,Hosts/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
-    my @all_hosts = uniq map { (split("/", $_))[0] } @all_parameters;
+    if (get_var('USE_SAP_HANA_SR_ANGI')) {
+        my @hosts_parameters = map { if (/^Host/) { s,Host/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
+        my @sites_parameters = map { if (/^Site/) { s,Site/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
+        my @all_hosts = uniq map { (split("/", $_))[0] } @hosts_parameters;
+        my @all_sites = uniq map { (split("/", $_))[0] } @sites_parameters;
+
+    } else {
+        my @hosts_parameters = map { if (/^Hosts/) { s,Hosts/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
+        my @all_hosts = uniq map { (split("/", $_))[0] } @hosts_parameters;
+    }
 
     for my $host (@all_hosts) {
         # Only takes parameter and value for lines about one specific host at time
         my %host_parameters = map {
             my ($node, $parameter, $value) = split(/[\/=]/, $_);
             if ($host eq $node) { ($parameter, $value) } else { () }
-        } @all_parameters;
+        } @hosts_parameters;
         $topology{$host} = \%host_parameters;
     }
+
+    if (get_var('USE_SAP_HANA_SR_ANGI')) {
+        for my $site (@all_sites) {
+            # Only takes parameter and value for lines about one specific site at time
+            my %site_parameters = map {
+                my ($node, $parameter, $value) = split(/[\/=]/, $_);
+                if ($site eq $node) { ($parameter, $value) } else { () }
+            } @sites_parameters;
+            $topology{$site} = \%site_parameters;
+        }
+
+    }
+
 
     return \%topology;
 }
@@ -124,7 +145,9 @@ sub check_hana_topology {
     foreach my $host (keys %$topology) {
         # first check presence of all fields needed in further tests.
         # If something is missing the topology is considered invalid.
-        foreach (qw(node_state sync_state)) {
+        $node_state = get_var('USE_SAP_HANA_SR_ANGI') ? "lpt" : "node_state";
+        $sync_state = get_var('USE_SAP_HANA_SR_ANGI') ? "srPoll" : "sync_state";
+        foreach (qw($node_state $sync_state)) {
             unless (defined($topology->{$host}->{$_})) {
                 record_info('check_hana_topology', "Missing '$_' field in topology output for host $host");
                 return 0;
@@ -132,16 +155,16 @@ sub check_hana_topology {
         }
 
         # Check node_state
-        if ($topology->{$host}->{node_state} !~ $args{node_state_match}) {
+        if ($topology->{$host}->{$node_state} !~ $args{node_state_match}) {
             record_info('check_hana_topology', "node_state: '$topology->{$host}->{node_state}' is not '$args{node_state_match}' for host $host");
             $all_online = 0;
             last;
         }
 
         # Check sync_state
-        if ($topology->{$host}->{sync_state} eq 'PRIM') {
+        if ($topology->{$host}->{$sync_state} eq 'PRIM') {
             $prim_count++;
-        } elsif ($topology->{$host}->{sync_state} eq 'SOK') {
+        } elsif ($topology->{$host}->{$sync_state} eq 'SOK') {
             $sok_count++;
         }
     }
