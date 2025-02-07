@@ -145,8 +145,8 @@ sub check_hana_topology {
     foreach my $host (keys %$topology) {
         # first check presence of all fields needed in further tests.
         # If something is missing the topology is considered invalid.
-        $node_state = get_var('USE_SAP_HANA_SR_ANGI') ? "lpt" : "node_state";
-        $sync_state = get_var('USE_SAP_HANA_SR_ANGI') ? "srPoll" : "sync_state";
+        my $node_state = get_var('USE_SAP_HANA_SR_ANGI') ? "lpt" : "node_state";
+        my $sync_state = get_var('USE_SAP_HANA_SR_ANGI') ? "srPoll" : "sync_state";
         foreach (qw($node_state $sync_state)) {
             unless (defined($topology->{$host}->{$_})) {
                 record_info('check_hana_topology', "Missing '$_' field in topology output for host $host");
