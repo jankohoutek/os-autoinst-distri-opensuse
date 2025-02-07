@@ -11,6 +11,7 @@ package saputils;
 
 use strict;
 use warnings;
+use Data::Dumper;
 use Exporter 'import';
 use testapi;
 use List::MoreUtils qw(uniq);
@@ -112,7 +113,7 @@ sub calculate_hana_topology {
 
     }
 
-
+    record_info("Calculated HANA topology", print Dumper \%topology);
     return \%topology;
 }
 
@@ -146,12 +147,12 @@ sub check_hana_topology {
     my $all_online = 1;
     my $prim_count = 0;
     my $sok_count = 0;
+    my $node_state = get_var('USE_SAP_HANA_SR_ANGI') ? "lpt" : "node_state";
+    my $sync_state = get_var('USE_SAP_HANA_SR_ANGI') ? "srPoll" : "sync_state";
 
     foreach my $host (keys %$topology) {
         # first check presence of all fields needed in further tests.
         # If something is missing the topology is considered invalid.
-        my $node_state = get_var('USE_SAP_HANA_SR_ANGI') ? "lpt" : "node_state";
-        my $sync_state = get_var('USE_SAP_HANA_SR_ANGI') ? "srPoll" : "sync_state";
         foreach (qw($node_state $sync_state)) {
             unless (defined($topology->{$host}->{$_})) {
                 record_info('check_hana_topology', "Missing '$_' field in topology output for host $host");
@@ -161,7 +162,7 @@ sub check_hana_topology {
 
         # Check node_state
         if ($topology->{$host}->{$node_state} !~ $args{node_state_match}) {
-            record_info('check_hana_topology', "node_state: '$topology->{$host}->{node_state}' is not '$args{node_state_match}' for host $host");
+            record_info('check_hana_topology', "node_state: '$topology->{$host}->{$node_state}' is not '$args{node_state_match}' for host $host");
             $all_online = 0;
             last;
         }

@@ -1,6 +1,6 @@
 # SUSE's openQA tests
 #
-# Copyright SUSE LLC
+# Copyright 2022-2025 SUSE LLC
 # SPDX-License-Identifier: FSFAP
 #
 # Summary: Library used for SLES4SAP publiccloud deployment and tests
