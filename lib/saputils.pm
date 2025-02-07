@@ -118,7 +118,8 @@ sub check_hana_topology {
     my (%args) = @_;
     croak("Argument <input> missing") unless $args{input};
     my $topology = $args{input};
-    $args{node_state_match} //= get_var('USE_SAP_HANA_SR_ANGI') ? 'sync' : 'online';
+    my $match = get_var('USE_SAP_HANA_SR_ANGI') ? 'sync' : 'online';
+    $args{node_state_match} //= $match;
 
     my $all_online = 1;
     my $prim_count = 0;
