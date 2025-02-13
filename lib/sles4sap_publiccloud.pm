@@ -244,9 +244,10 @@ sub sles4sap_cleanup {
 
 sub get_hana_topology {
     my ($self) = @_;
+    my $output_format = $args{output_format} || 'script';
     $self->wait_for_idle(timeout => 240);
-    my $cmd_out = $self->run_cmd(cmd => 'SAPHanaSR-showAttr --format=script', quiet => 1);
-    return calculate_hana_topology(input => $cmd_out);
+    my $cmd_out = $self->run_cmd(cmd => "SAPHanaSR-showAttr --format=$output_format", quiet => 1);
+    return calculate_hana_topology(input_format => $output_format, input => $cmd_out);
 }
 
 =head2 is_hana_online

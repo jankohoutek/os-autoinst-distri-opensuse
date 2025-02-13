@@ -37,35 +37,58 @@ like other baseclass or testapi. Avoid using get_var/set_var at this level.
 
 
 =head2 calculate_hana_topology
-    calculate_hana_topology(input => $saphanasr_showAttr_format_script_output);
+    calculate_hana_topology(input_format=>[script|json], input => $saphanasr_showAttr_format_input_format_output);
 
-    Expect `SAPHanaSR-showAttr --format=script` as input.
-    Parses this input, returns a hash of hashes containing values for each host.
-
-    Output like:
+    Expect `SAPHanaSR-showAttr --format=$input_format` as input.
+    Returns pasrsed perl value decoded from json remap output from like :
             Hosts/vmhana01/remoteHost="vmhana02"
             Hosts/vmhana01/sync_state="PRIM"
             Hosts/vmhana01/vhost="vmhana01"
             Hosts/vmhana02/remoteHost="vmhana01"
             Hosts/vmhana02/sync_state="SOK"
             Hosts/vmhana02/vhost="vmhana02"
-    result in
+
+    output look a like:
     {
-        vmhana01 => {
-            remoteHost => 'vmhana02',
-            sync_state => 'PRIM',
-            vhost => 'vmhana01',
-        },
-        vmhana02 => {
-            remoteHost => 'vmhana01',
-            sync_state => 'SOK',
-            vhost => 'vmhana02',
-        },
-    }
+          'Host' => {
+                      'vmhana01' => {
+                                           'clone_state' => 'DEMOTED',
+                                           'score' => '100',
+                                           'srah' => '-',
+                                           'version' => '2.00.077.00.1710325774',
+                                           'vhost' => 'vmhana01',
+                                           'site' => 'site_a'
+                                         },
+                      'vmhana02' => {
+                                           'clone_state' => 'PROMOTED',
+                                           'score' => '150',
+                                           'vhost' => 'vmhana02',
+                                           'srah' => '-',
+                                           'version' => '2.00.077.00.1710325774',
+                                           'site' => 'site_b'
+                                         }
+                    },
+          'Site' => {
+                      'site_a' => {
+                                     'srMode' => 'sync',
+                                     'srPoll' => 'SOK',
+                                     'mns' => 'vmhana01'
+                                   },
+                      'site_b' => {
+                                     'srPoll' => 'PRIM',
+                                     'mns' => 'vmhana02',
+                                     'srMode' => 'sync'
+                                   }
+                    }
+        };
+
+
 
 =over 1
 
-=item B<input> - stdout of 'SAPHanaSR-showAttr --format=script'
+=item B<input_format> - format of the 'SAPHanaSR-showAttr --format='
+
+=item B<input> - stdout of 'SAPHanaSR-showAttr --format=<input_format>'
 
 =back
 =cut
@@ -74,20 +97,45 @@ like other baseclass or testapi. Avoid using get_var/set_var at this level.
 sub calculate_hana_topology {
     my (%args) = @_;
     croak("Argument <input> missing") unless $args{input};
+    my $input_format = $args{input_format} || 'script';
     my %topology;
-    my @all_parameters = map { if (/^Hosts/) { s,Hosts/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
-    my @all_hosts = uniq map { (split("/", $_))[0] } @all_parameters;
+    my $topology_json;
+    my %script_topology;
 
-    for my $host (@all_hosts) {
-        # Only takes parameter and value for lines about one specific host at time
-        my %host_parameters = map {
-            my ($node, $parameter, $value) = split(/[\/=]/, $_);
-            if ($host eq $node) { ($parameter, $value) } else { () }
-        } @all_parameters;
-        $topology{$host} = \%host_parameters;
+    if ($input_format eq 'json') {
+        $topology_json = $args{input};
+    } else {
+
+        my @all_parameters = map { if (/^Hosts/) { s,Hosts/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
+        my @all_hosts = uniq map { (split("/", $_))[0] } @all_parameters;
+
+        for my $host (@all_hosts) {
+            # Only takes parameter and value for lines about one specific host at time
+            my %host_parameters = map {
+                my ($node, $parameter, $value) = split(/[\/=]/, $_);
+                if ($host eq $node) { ($parameter, $value) } else { () }
+            } @all_parameters;
+            $script_topology{$host} = \%host_parameters;
+        }
+        # Remapping to JSON decode likeness
+        for my $host (@all_hosts) {
+            # Site
+            $topology{'Site'}{$script_topology{$host}->{'site'}}{'mns'} = $host;
+            $topology{'Site'}{$script_topology{$host}->{'site'}}{'srMode'} = $script_topology{$host}->{'srmode'};
+            $topology{'Site'}{$script_topology{$host}->{'site'}}{'srPoll'} = $script_topology{$host}->{'sync_state'};
+            $topology{'Site'}{$script_topology{$host}->{'site'}}{'lss'} = ($script_topology{$host}->{'node_state'} eq 'online' or $script_topology{$host}->{'node_state'} =~ /[1-9]+/) ? '4' : '1';
+            # Host
+            $topology{'Host'}{$host}{'vhost'} = $host;
+            $topology{'Host'}{$host}{'site'} = $script_topology{$host}->{'site'};
+            $topology{'Host'}{$host}{'srah'} = $script_topology{$host}->{'srah'};
+            $topology{'Host'}{$host}{'clone_state'} = $script_topology{$host}->{'clone_state'};
+            $topology{'Host'}{$host}{'score'} = $script_topology{$host}->{'score'};
+            $topology{'Host'}{$host}{'version'} = $script_topology{$host}->{'version'};
+        }
+        $topology_json = encode_json(\%topology);
     }
-
-    return \%topology;
+    my $hana_topology = decode_json($topology_json);
+    return $hana_topology;
 }
 
 =head2 check_hana_topology
@@ -115,40 +163,39 @@ sub check_hana_topology {
     my (%args) = @_;
     croak("Argument <input> missing") unless $args{input};
     my $topology = $args{input};
-    $args{node_state_match} //= 'online';
+    my $node_state_match = $args{node_state_match};
 
     my $all_online = 1;
     my $prim_count = 0;
     my $sok_count = 0;
-
-    foreach my $host (keys %$topology) {
+    foreach my $site (keys %{$topology->{Site}}) {
         # first check presence of all fields needed in further tests.
         # If something is missing the topology is considered invalid.
-        foreach (qw(node_state sync_state)) {
-            unless (defined($topology->{$host}->{$_})) {
-                record_info('check_hana_topology', "Missing '$_' field in topology output for host $host");
+        foreach (qw(lss srPoll)) {
+            unless (defined($topology->{Site}->{$site}->{$_})) {
+                print('check_hana_topology', "Missing '$_' field in topology output for site $site");
                 return 0;
             }
         }
 
         # Check node_state
-        if ($topology->{$host}->{node_state} !~ $args{node_state_match}) {
-            record_info('check_hana_topology', "node_state: '$topology->{$host}->{node_state}' is not '$args{node_state_match}' for host $host");
+        if ($topology->{'Site'}->{$site}->{'lss'} ne $node_state_match) {
+            print('check_hana_topology', "node_state: $topology->{'Site'}->{$site}->{'lss'} is not $args{node_state_match} for host $topology->{'Site'}->{$site}->{'mns'}");
             $all_online = 0;
             last;
         }
 
         # Check sync_state
-        if ($topology->{$host}->{sync_state} eq 'PRIM') {
+        if ($topology->{'Site'}->{$site}->{'srPoll'} eq 'PRIM') {
             $prim_count++;
-        } elsif ($topology->{$host}->{sync_state} eq 'SOK') {
+        } elsif ($topology->{'Site'}->{$site}->{'srPoll'} eq 'SOK') {
             $sok_count++;
         }
     }
 
     # Final check for conditions
     record_info('check_hana_topology', "all_online: $all_online prim_count: $prim_count sok_count: $sok_count");
-    return ($all_online && $prim_count == 1 && $sok_count == (keys %$topology) - 1);
+    return ($all_online && $prim_count == 1 && $sok_count == (keys %{$topology->{'Site'}}) - 1);
 }
 
 =head2 check_crm_output
@@ -194,8 +241,10 @@ sub get_primary_node {
     my (%args) = @_;
     croak("Argument <topology_data> missing") unless $args{topology_data};
     my $topology = $args{topology_data};
-    for my $db (keys %$topology) {
-        return $db if $topology->{$db}{sync_state} eq 'PRIM';
+    for my $site (keys %{$topology->{Site}}) {
+        for my $host (keys %{$topology->{Host}}) {
+            return $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{site} eq $site && $topology->{'Site'}->{$site}->{'srPoll'} eq 'PRIM');
+        }
     }
 }
 
@@ -216,8 +265,10 @@ sub get_failover_node {
     my (%args) = @_;
     croak("Argument <topology_data> missing") unless $args{topology_data};
     my $topology = $args{topology_data};
-    for my $db (keys %$topology) {
-        return $db if grep /$topology->{$db}{sync_state}/, ('SOK', 'SFAIL');
+    for my $site (keys %{$topology->{Site}}) {
+        for my $host (keys %{$topology->{Host}}) {
+            return $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{site} eq $site && grep /$topology->{'Site'}->{$site}->{'srPoll'}/, ('SOK', 'SFAIL'));
+        }
     }
 }
 
