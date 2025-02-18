@@ -106,21 +106,47 @@ sub calculate_hana_topology {
         $topology_json = $args{input};
     } else {
 
-        my @all_parameters = map { if (/^Hosts/) { s,Hosts/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
-        my @all_hosts = uniq map { (split("/", $_))[0] } @all_parameters;
+        my @hosts_parameters = map { if (/^Hosts/) { s,Hosts/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
+        my @globals_parameters = map { if (/^Global/) { s,Global/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
+        my @resources_parameters = map { if (/^Resource/) { s,Resource/,,; s,",,g; $_ } else { () } } split("\n", $args{input});
+
+        my @all_hosts = uniq map { (split("/", $_))[0] } @hosts_parameters;
+        my @all_globals = uniq map { (split("/", $_))[0] } @globals_parameters;
+        my @all_resources = uniq map { (split("/", $_))[0] } @resources_parameters;
 
         for my $host (@all_hosts) {
             # Only takes parameter and value for lines about one specific host at time
-            my %host_parameters = map {
+            my %host_parameter = map {
                 my ($node, $parameter, $value) = split(/[\/=]/, $_);
                 if ($host eq $node) { ($parameter, $value) } else { () }
-            } @all_parameters;
-            $script_topology{$host} = \%host_parameters;
+            } @hosts_parameters;
+            $script_topology{$host} = \%host_parameter;
         }
+
+        for my $global (@all_globals) {
+            # Takes parameter and value per line in Global
+            my %global_parameter = map {
+                my ($node, $parameter, $value) = split(/[\/=]/, $_);
+                ($parameter, $value);
+            } @globals_parameters;
+            $script_topology{$global} = \%global_parameter;
+        }
+
+        for my $resource (@all_resources) {
+            # Takes parameter and value per line in resource
+            my %resource_parameter = map {
+                my ($node, $parameter, $value) = split(/[\/=]/, $_);
+                ($parameter, $value);
+            } @resources_parameters;
+            $topology{'Resource'}{$resource} = \%resource_parameter;
+        }
+
+
         # Remapping to JSON decode likeness
         for my $host (@all_hosts) {
             # Site
             $topology{'Site'}{$script_topology{$host}->{'site'}}{'mns'} = $host;
+            $topology{'Site'}{$script_topology{$host}->{'site'}}{'opMode'} = $script_topology{$host}->{'op_mode'};
             $topology{'Site'}{$script_topology{$host}->{'site'}}{'srMode'} = $script_topology{$host}->{'srmode'};
             $topology{'Site'}{$script_topology{$host}->{'site'}}{'srPoll'} = $script_topology{$host}->{'sync_state'};
             $topology{'Site'}{$script_topology{$host}->{'site'}}{'lss'} = ($script_topology{$host}->{'node_state'} eq 'online' or $script_topology{$host}->{'node_state'} =~ /[1-9]+/) ? '4' : '1';
@@ -132,6 +158,10 @@ sub calculate_hana_topology {
             $topology{'Host'}{$host}{'score'} = $script_topology{$host}->{'score'};
             $topology{'Host'}{$host}{'version'} = $script_topology{$host}->{'version'};
         }
+        # Global
+        $topology{'Global'}{'global'}{'cib-last-written'} = $script_topology{'global'}->{'cib-time'};
+        $topology{'Global'}{'global'}{'maintenance-mode'} = $script_topology{'global'}->{'maintenance'};
+
         $topology_json = encode_json(\%topology);
     }
     my $hana_topology = decode_json($topology_json);
@@ -243,7 +273,7 @@ sub get_primary_node {
     my $topology = $args{topology_data};
     for my $site (keys %{$topology->{Site}}) {
         for my $host (keys %{$topology->{Host}}) {
-            return $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{site} eq $site && $topology->{'Site'}->{$site}->{'srPoll'} eq 'PRIM');
+            return $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{'site'} eq $site && $topology->{'Site'}->{$site}->{'srPoll'} eq 'PRIM');
         }
     }
 }
@@ -265,9 +295,9 @@ sub get_failover_node {
     my (%args) = @_;
     croak("Argument <topology_data> missing") unless $args{topology_data};
     my $topology = $args{topology_data};
-    for my $site (keys %{$topology->{Site}}) {
-        for my $host (keys %{$topology->{Host}}) {
-            return $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{site} eq $site && grep /$topology->{'Site'}->{$site}->{'srPoll'}/, ('SOK', 'SFAIL'));
+    for my $site (keys %{$topology->{'Site'}}) {
+        for my $host (keys %{$topology->{'Host'}}) {
+            return $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{'site'} eq $site && grep /$topology->{'Site'}->{$site}->{'srPoll'}/, ('SOK', 'SFAIL'));
         }
     }
 }
