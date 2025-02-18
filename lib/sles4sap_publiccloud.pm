@@ -244,7 +244,7 @@ sub sles4sap_cleanup {
 
 sub get_hana_topology {
     my ($self) = @_;
-    my $output_format = $args{output_format} || 'script';
+    my $output_format = run_cmd(cmd => "rpm --quiet -q SAPHanaSR-angi", quiet => 1, rc_only => 1) ? 'json' : 'script';
     $self->wait_for_idle(timeout => 240);
     my $cmd_out = $self->run_cmd(cmd => "SAPHanaSR-showAttr --format=$output_format", quiet => 1);
     return calculate_hana_topology(input_format => $output_format, input => $cmd_out);
@@ -495,17 +495,19 @@ sub check_takeover {
   TAKEOVER_LOOP: while (1) {
         my $topology = $self->get_hana_topology();
         $retry_count++;
-        while (my ($entry, $host_entry) = each %$topology) {
-            foreach (qw(vhost sync_state)) {
-                die("Missing '$_' field in topology output") unless defined(%$host_entry{$_}); }
-            my $vhost = %$host_entry{vhost};
-            my $sync_state = %$host_entry{sync_state};
-            record_info("Cluster Host", join("\n",
-                    "vhost: $vhost compared with $hostname",
-                    "sync_state: $sync_state compared with PRIM"));
-            if ($vhost ne $hostname && $sync_state eq "PRIM") {
-                record_info("Takeover status:", "Takeover complete to node '$vhost");
-                last TAKEOVER_LOOP;
+        for my $site (keys %{$topology->{'Site'}}) {
+            die("Missing 'srPoll' field in topology output of Site->$site") unless defined($topology->{'Site'}->{$site}->{'srPoll'});
+            for my $host (keys %{$topology->{'Host'}}) {
+                die("Missing 'vhost' field in topology output of $host") unless defined($topology->{'Host'}->{$host}->{'vhost'});
+                my $vhost = $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
+                my $sync_state = $topology->{'Site'}->{$site}->{'srPoll'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
+                record_info("Cluster Host", join("\n",
+                        "vhost: $vhost compared with $hostname",
+                        "sync_state: $sync_state compared with PRIM"));
+                if ($vhost ne $hostname && $sync_state eq "PRIM") {
+                    record_info("Takeover status:", "Takeover complete to node '$vhost");
+                    last TAKEOVER_LOOP;
+                }
             }
         }
         die("Test failed: takeover failed to complete.") if ($retry_count > 40);
@@ -518,7 +520,7 @@ sub check_takeover {
 =head2 enable_replication
     enable_replication([site_name => 'site_a']);
 
-    Enables replication on fenced database. Database needs to be offline.
+    Re-enables replication on the fenced database node. Database must be offline.
 
 =over
 
@@ -531,22 +533,40 @@ sub enable_replication {
     my ($self, %args) = @_;
     croak("Argument <site_name> missing") unless $args{site_name};
     my $hostname = $self->{my_instance}->{instance_id};
+    my $remote_host;
+    my $sr_mode;
+    my $op_mode;
+    my $instance_id;
     die("Database on the fenced node '$hostname' is not offline") if ($self->is_hana_database_online);
     die("System replication '$hostname' is not offline") if ($self->is_primary_node_online);
 
     my $topology = $self->get_hana_topology();
-    foreach (qw(vhost remoteHost srmode op_mode)) { die "Missing '$_' field in topology output" unless defined(%$topology{$hostname}->{$_}); }
+    for my $site (keys %{$topology->{'Site'}}) {
+        foreach (qw(srMode opMode)) { die("Missing '$_' field in topology output of Site->$site") unless defined($topology->{'Site'}->{$site}->{$_}); }
+        for my $host (keys %{$topology->{'Host'}}) {
+            die("Missing 'vhost' field in topology output of $host") unless defined($topology->{'Host'}->{$host}->{'vhost'});
+            $remote_host = $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{'site'} ne $site);
+            $sr_mode = $topology->{'Site'}->{$site}->{'srMode'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
+            $op_mode = $topology->{'Site'}->{$site}->{'opMode'};
+        }
+    }
+
+    for my $resource (keys %{$hana_topology->{'Resource'}}) {
+        $instance_id = substr($resource, -2) if (substr($resource, 0, 3) eq "mst" or substr($resource, 0, 3) eq "msl");
+    }
 
     my $cmd = join(' ', 'hdbnsutil -sr_register',
         '--name=' . $args{site_name},
-        '--remoteHost=' . %$topology{$hostname}->{remoteHost},
-        '--remoteInstance=00',
-        '--replicationMode=' . %$topology{$hostname}->{srmode},
-        '--operationMode=' . %$topology{$hostname}->{op_mode});
+        '--remoteHost=' . $remote_host,
+        '--remoteInstance=' . $instance_id,
+        '--replicationMode=' . $sr_mode,
+        '--operationMode=' . $op_mode);
 
     record_info('CMD Run', $cmd);
     $self->run_cmd(cmd => $cmd, runas => get_required_var("SAP_SIDADM"));
 }
+
+
 
 =head2 get_replication_info
     get_replication_info();
