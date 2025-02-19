@@ -14,6 +14,7 @@ use warnings;
 use Exporter 'import';
 use testapi;
 use List::MoreUtils qw(uniq);
+use Mojo::JSON qw(encode_json decode_json);
 use Carp qw(croak);
 
 our @EXPORT = qw(
