@@ -1,9 +1,9 @@
 # SUSE's openQA tests
 #
-# Copyright SUSE LLC
+# Copyright 2022 - 2025 SUSE LLC
 # SPDX-License-Identifier: FSFAP
 #
-# Summary: Library used for SLES4SAP publiccloud deployment and tests
+# Summary: Library used for SLES4SAP public cloud deployment and tests
 #
 # Note: Subroutines executing commands on remote host (using "run_cmd" or "run_ssh_command") require
 # to have $self->{my_instance} defined.
@@ -206,7 +206,7 @@ sub sles4sap_cleanup {
     for my $command (@cmd_list) {
         record_info('Cleanup', "Executing $command cleanup");
 
-        # 3 attempts for both terraform and ansible cleanup
+        # 3 attempts for both terraform and ansible clean-up
         for (1 .. 3) {
             my @cleanup_cmd_rc = qesap_execute(
                 verbose => '--verbose',
@@ -244,7 +244,7 @@ sub sles4sap_cleanup {
 
 sub get_hana_topology {
     my ($self) = @_;
-    my $output_format = run_cmd(cmd => "rpm --quiet -q SAPHanaSR-angi", quiet => 1, rc_only => 1) ? 'json' : 'script';
+    my $output_format = 'script';
     $self->wait_for_idle(timeout => 240);
     my $cmd_out = $self->run_cmd(cmd => "SAPHanaSR-showAttr --format=$output_format", quiet => 1);
     return calculate_hana_topology(input_format => $output_format, input => $cmd_out);
@@ -411,7 +411,7 @@ sub stop_hana {
             rc_only => 1,
             ssh_opts => $crash_ssh_opts);
 
-        # Wait till ssh port 22 disappear
+        # Wait till SSH port 22 disappear
         record_info('Wait ssh disappear', 'START');
         my $start_time = time();
         my $exit_code;
@@ -554,6 +554,7 @@ sub enable_replication {
     for my $resource (keys %{$hana_topology->{'Resource'}}) {
         $instance_id = substr($resource, -2) if (substr($resource, 0, 3) eq "mst" or substr($resource, 0, 3) eq "msl");
     }
+    die("Instance number couldn't be determined from the list of resources") unless (defined($instance_id) && $instance_id ne '');
 
     my $cmd = join(' ', 'hdbnsutil -sr_register',
         '--name=' . $args{site_name},
@@ -642,11 +643,11 @@ sub wait_for_sync {
 
     record_info('Sync wait', "Waiting for data sync between nodes. online_str=$online_str timeout=$timeout");
 
-    # Check sync status periodically until ok for 5 times in a row or timeout
+    # Check sync status periodically until OK for 5 times in a row or timeout
     my $start_time = time;
     while (time - $start_time < $timeout) {
         # call SAPHanaSR-showAttr to get current topology, validate the output, calculate the score.
-        # Not ok cluster result in score reset to zero
+        # Not OK cluster result in score reset to zero
         $output_pass = check_hana_topology(input => $self->get_hana_topology(), node_state_match => $online_str) ? $output_pass + 1 : 0;
         last if $output_pass == 5;
         sleep 30;
@@ -759,7 +760,7 @@ sub setup_sbd_delay_publiccloud() {
         croak("<\$set_delay> value must be either 'yes', 'no' or an integer. Got value: $delay")
           unless looks_like_number($delay) or grep /^$delay$/, qw(yes no);
         $self->cloud_file_content_replace(filename => '/etc/sysconfig/sbd', search_pattern => '^SBD_DELAY_START=.*', replace_with => "SBD_DELAY_START=$delay");
-        # service timeout must be higher that startup delay
+        # service timeout must be higher that start-up delay
         $self->change_sbd_service_timeout(service_timeout => $self->sbd_delay_formula() + 30);
         record_info('SBD delay', "SBD delay set to: $delay");
     }
@@ -877,7 +878,7 @@ sub deployment_name {
 sub delete_network_peering {
     record_info('Peering cleanup', 'Executing peering cleanup (if peering is present)');
     if (is_azure) {
-        # Check that required vars are available before deleting the peering
+        # Check that required variables are available before deleting the peering
         my $rg = qesap_az_get_resource_group();
         if (get_var('IBSM_RG')) {
             qesap_az_vnet_peering_delete(source_group => $rg, target_group => get_var('IBSM_RG'));
@@ -965,7 +966,7 @@ sub create_playbook_section_list {
         push @playbook_list, 'fully-patch-system.yaml';
     }
 
-    # Add playbook to download and install PTFs, if any
+    # Add play book to download and install PTFs, if any
     if ($args{ptf_files} && $args{ptf_token} && $args{ptf_container} && $args{ptf_account}) {
         push @playbook_list, join(' ',
             'ptf_installation.yaml',
@@ -978,7 +979,7 @@ sub create_playbook_section_list {
 
     my $hana_cluster_playbook = 'sap-hana-cluster.yaml';
     if ($args{fencing} eq 'native' and is_azure) {
-        # Prepares Azure native fencing related arguments for 'sap-hana-cluster.yaml' playbook
+        # Prepares Azure native fencing related arguments for 'sap-hana-cluster.yaml' play book
         my $azure_native_fencing_args = azure_fencing_agents_playbook_args(
             fence_type => $args{fence_type},
             spn_application_id => $args{spn_application_id},
@@ -987,7 +988,7 @@ sub create_playbook_section_list {
         $hana_cluster_playbook = join(' ', $hana_cluster_playbook, $azure_native_fencing_args);
     }
 
-    # SLES4SAP/HA related playbooks
+    # SLES4SAP/HA related play books
     if ($args{ha_enabled}) {
         push @playbook_list, 'pre-cluster.yaml', 'sap-hana-preconfigure.yaml -e use_sapconf=' . get_var('USE_SAPCONF', 'false');
         push @playbook_list, 'cluster_sbd_prep.yaml' if ($args{fencing} eq 'sbd');
@@ -1308,7 +1309,7 @@ sub wait_for_cluster {
         if ($args{max_retries} <= 0) {
             record_info('NOT OK', "Cluster or DB data synchronization issue detected after retrying.");
             $self->display_full_status();
-            # softfail because of bsc#1233026 - if fixed remove the 'if' condition AND the 'use version_utils' from this file
+            # soft fail because of bsc#1233026 - if fixed remove the 'if' condition AND the 'use version_utils' from this file
             if (is_sle('=12-SP5') && $crm_output =~ /TimeoutError/) {
                 record_soft_failure("bsc#1233026 - Error occurred, see previous output: Proceeding despite failure.");
                 return;

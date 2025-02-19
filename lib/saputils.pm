@@ -1,6 +1,6 @@
 # SUSE's openQA tests
 #
-# Copyright 2017-2024 SUSE LLC
+# Copyright 2017-2025 SUSE LLC
 # SPDX-License-Identifier: FSFAP
 #
 # Summary: Functions for SAP tests
@@ -31,7 +31,7 @@ SAP Applications.
 
 This package is a stateless library.
 To keep this library as generic as possible avoid as much as possible any other dependency usage,
-like other baseclass or testapi. Avoid using get_var/set_var at this level.
+like other base class or test API. Avoid using get_var/set_var at this level.
 
 =cut
 
@@ -132,6 +132,9 @@ sub calculate_hana_topology {
             $script_topology{$global} = \%global_parameter;
         }
 
+        # Remapping to JSON decode likeness
+
+        # Resources could be mapped directly
         for my $resource (@all_resources) {
             # Takes parameter and value per line in resource
             my %resource_parameter = map {
@@ -142,7 +145,6 @@ sub calculate_hana_topology {
         }
 
 
-        # Remapping to JSON decode likeness
         for my $host (@all_hosts) {
             # Site
             $topology{'Site'}{$script_topology{$host}->{'site'}}{'mns'} = $host;
