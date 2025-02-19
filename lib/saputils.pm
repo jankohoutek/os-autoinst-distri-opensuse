@@ -214,14 +214,17 @@ sub check_hana_topology {
         # Check node_state
         if ($topology->{'Site'}->{$site}->{'lss'} ne $node_state_match) {
             print('check_hana_topology', "node_state: $topology->{'Site'}->{$site}->{'lss'} is not $args{node_state_match} for host $topology->{'Site'}->{$site}->{'mns'}");
+            print("\nDEBUG: topology->{Site}->{$site}->{lss}: $topology->{'Site'}->{$site}->{'lss'} == node_state_match: $node_state_match");
             $all_online = 0;
             last;
         }
 
         # Check sync_state
         if ($topology->{'Site'}->{$site}->{'srPoll'} eq 'PRIM') {
+            print("\nDEBUG: PRIM topology->{'Site'}->{$site}->{'srPoll'}: $topology->{Site}->{$site}->{srPoll} \n");
             $prim_count++;
         } elsif ($topology->{'Site'}->{$site}->{'srPoll'} eq 'SOK') {
+            print("\nDEBUG: SOK topology->{'Site'}->{$site}->{'srPoll'}: $topology->{Site}->{$site}->{srPoll} \n");
             $sok_count++;
         }
     }
