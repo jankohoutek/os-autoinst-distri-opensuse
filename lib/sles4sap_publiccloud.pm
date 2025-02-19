@@ -551,7 +551,7 @@ sub enable_replication {
         }
     }
 
-    for my $resource (keys %{$hana_topology->{'Resource'}}) {
+    for my $resource (keys %{$topology->{'Resource'}}) {
         $instance_id = substr($resource, -2) if (substr($resource, 0, 3) eq "mst" or substr($resource, 0, 3) eq "msl");
     }
     die("Instance number couldn't be determined from the list of resources") unless (defined($instance_id) && $instance_id ne '');
