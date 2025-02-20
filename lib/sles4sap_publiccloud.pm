@@ -648,7 +648,7 @@ sub wait_for_sync {
     while (time - $start_time < $timeout) {
         # call SAPHanaSR-showAttr to get current topology, validate the output, calculate the score.
         # Not OK cluster result in score reset to zero
-        $output_pass = check_hana_topology(input => $self->get_Hana_topology(), node_state_match => $online_str) ? $output_pass + 1 : 0;
+        $output_pass = check_hana_topology(input => $self->get_hana_topology(), node_state_match => $online_str) ? $output_pass + 1 : 0;
         last if $output_pass == 5;
         sleep 30;
     }
