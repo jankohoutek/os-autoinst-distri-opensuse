@@ -503,13 +503,13 @@ sub check_takeover {
                 die("check_takeover [ERROR] Missing 'vhost' field in topology output of $host") unless defined($topology->{'Host'}->{$host}->{'vhost'});
                 $vhost = $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
                 $sync_state = $topology->{'Site'}->{$site}->{'srPoll'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
-                record_info("Cluster Host", join("\n",
-                        "vhost: $vhost compared with $hostname",
-                        "sync_state: $sync_state compared with PRIM"));
-                if ($vhost ne $hostname && $sync_state eq "PRIM") {
-                    record_info("Takeover status:", "Takeover complete to node '$vhost");
-                    last TAKEOVER_LOOP;
-                }
+            }
+            record_info("Cluster Host", join("\n",
+                    "vhost: $vhost compared with $hostname",
+                    "sync_state: $sync_state compared with PRIM"));
+            if ($vhost ne $hostname && $sync_state eq "PRIM") {
+                record_info("Takeover status:", "Takeover complete to node '$vhost");
+                last TAKEOVER_LOOP;
             }
         }
         die("check_takeover [ERROR] Test failed: takeover failed to complete.") if ($retry_count > 40);
