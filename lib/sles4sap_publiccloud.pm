@@ -473,7 +473,7 @@ sub cleanup_resource {
     while ($self->is_hana_resource_running() == 0) {
         if (time - $start_time > $timeout) {
             record_info("Cluster status", $self->run_cmd(cmd => $crm_mon_cmd));
-            die("Resource did not start within defined timeout. ($timeout sec).");
+            die("cleanup_resource [ERROR] Resource did not start within defined timeout. ($timeout sec).");
         }
         sleep 30;
     }
@@ -491,16 +491,18 @@ sub check_takeover {
     die("Database on the fenced node '$hostname' is not offline") if ($self->is_hana_database_online);
     die("System replication '$hostname' is not offline") if ($self->is_primary_node_online);
     my $retry_count = 0;
+    my $vhost;
+    my $sync_state;
 
   TAKEOVER_LOOP: while (1) {
         my $topology = $self->get_hana_topology();
         $retry_count++;
         for my $site (keys %{$topology->{'Site'}}) {
-            die("Missing 'srPoll' field in topology output of Site->$site") unless defined($topology->{'Site'}->{$site}->{'srPoll'});
+            die("check_takeover [ERROR] Missing 'srPoll' field in topology output of Site->$site") unless defined($topology->{'Site'}->{$site}->{'srPoll'});
             for my $host (keys %{$topology->{'Host'}}) {
-                die("Missing 'vhost' field in topology output of $host") unless defined($topology->{'Host'}->{$host}->{'vhost'});
-                my $vhost = $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
-                my $sync_state = $topology->{'Site'}->{$site}->{'srPoll'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
+                die("check_takeover [ERROR] Missing 'vhost' field in topology output of $host") unless defined($topology->{'Host'}->{$host}->{'vhost'});
+                $vhost = $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
+                $sync_state = $topology->{'Site'}->{$site}->{'srPoll'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
                 record_info("Cluster Host", join("\n",
                         "vhost: $vhost compared with $hostname",
                         "sync_state: $sync_state compared with PRIM"));
@@ -510,7 +512,7 @@ sub check_takeover {
                 }
             }
         }
-        die("Test failed: takeover failed to complete.") if ($retry_count > 40);
+        die("check_takeover [ERROR] Test failed: takeover failed to complete.") if ($retry_count > 40);
         sleep 30;
     }
 
@@ -608,7 +610,7 @@ sub get_promoted_instance {
         $promoted = $instance if ($instance_id eq $promoted_id);
     }
     if ($promoted eq "undef" || !defined($promoted)) {
-        die("Failed to identify Hana 'PROMOTED' node");
+        die("get_promoted_instance [ERROR] Failed to identify Hana 'PROMOTED' node");
     }
     return $promoted;
 }
@@ -655,7 +657,7 @@ sub wait_for_sync {
     if ($output_pass < 5) {
         record_info("Cluster status", $self->run_cmd(cmd => $crm_mon_cmd));
         record_info("Sync FAIL", "Host replication status: " . $self->run_cmd(cmd => 'SAPHanaSR-showAttr'));
-        die("Replication SYNC did not finish within defined timeout. ($timeout sec).");
+        die("wait_for_sync [ERROR] Replication SYNC did not finish within defined timeout. ($timeout sec).");
     }
 }
 
@@ -683,7 +685,7 @@ sub wait_for_pacemaker {
         $pacemaker_state = $self->run_cmd(cmd => $systemd_cmd, proceed_on_failure => 1);
         if (time - $start_time > $timeout) {
             record_info("Pacemaker status", $self->run_cmd(cmd => "systemctl --no-pager status pacemaker"));
-            die("Pacemaker did not start within defined timeout");
+            die("wait_for_pacemaker [ERROR] Pacemaker did not start within defined timeout");
         }
     }
     return 1;
@@ -704,7 +706,7 @@ sub wait_for_pacemaker {
 
 sub change_sbd_service_timeout() {
     my ($self, %args) = @_;
-    croak("Argument <service_timeout> missing") unless $args{service_timeout};
+    croak("change_sbd_service_timeout [ERROR] Argument <service_timeout> missing") unless $args{service_timeout};
 
     my $service_override_dir = "/etc/systemd/system/sbd.service.d/";
     my $service_override_filename = "sbd_delay_start.conf";
@@ -757,7 +759,7 @@ sub setup_sbd_delay_publiccloud() {
     }
     else {
         $delay =~ s/(?<![ye])s//g;
-        croak("<\$set_delay> value must be either 'yes', 'no' or an integer. Got value: $delay")
+        croak("setup_sbd_delay_publiccloud [ERROR] <\$set_delay> value must be either 'yes', 'no' or an integer. Got value: $delay")
           unless looks_like_number($delay) or grep /^$delay$/, qw(yes no);
         $self->cloud_file_content_replace(filename => '/etc/sysconfig/sbd', search_pattern => '^SBD_DELAY_START=.*', replace_with => "SBD_DELAY_START=$delay");
         # service timeout must be higher that start-up delay
