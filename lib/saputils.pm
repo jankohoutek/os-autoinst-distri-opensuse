@@ -97,7 +97,7 @@ like other base class or test API. Avoid using get_var/set_var at this level.
 
 sub calculate_hana_topology {
     my (%args) = @_;
-    croak("Argument <input> missing") unless $args{input};
+    croak("calculate_hana_topology [ERROR] Argument <input> missing") unless $args{input};
     my $input_format = $args{input_format} || 'script';
     my %topology;
     my $topology_json;
@@ -186,7 +186,7 @@ sub calculate_hana_topology {
 
 =item B<input> - return value of calculate_hana_topology
 
-=item B<node_state_match> - string used to match the online state in field node_state. Default 'online'
+=item B<node_state_match> - string used to match the online state in field node_state.
 
 =back
 =cut
@@ -194,9 +194,9 @@ sub calculate_hana_topology {
 
 sub check_hana_topology {
     my (%args) = @_;
-    croak("Argument <input> missing") unless $args{input};
+    croak("check_hana_topology [ERROR] Argument <input> missing") unless $args{input};
     my $topology = $args{input};
-    my $node_state_match = $args{node_state_match};
+    my $node_state_match = ($args{node_state_match} eq 'online' or $args{node_state_match} =~ /[1-9]+/) ? '4' : '1';
 
     my $all_online = 1;
     my $prim_count = 0;
@@ -206,25 +206,25 @@ sub check_hana_topology {
         # If something is missing the topology is considered invalid.
         foreach (qw(lss srPoll)) {
             unless (defined($topology->{Site}->{$site}->{$_})) {
-                print('check_hana_topology', "Missing '$_' field in topology output for site $site");
+                print('check_hana_topology', ' [ERROR] ', "Missing '$_' field in topology output for site $site");
                 return 0;
             }
         }
 
         # Check node_state
         if ($topology->{'Site'}->{$site}->{'lss'} ne $node_state_match) {
-            print('check_hana_topology', "node_state: $topology->{'Site'}->{$site}->{'lss'} is not $args{node_state_match} for host $topology->{'Site'}->{$site}->{'mns'}");
-            print("\nDEBUG: topology->{Site}->{$site}->{lss}: $topology->{'Site'}->{$site}->{'lss'} == node_state_match: $node_state_match");
+            print('check_hana_topology', ' [ERROR] ', "node_state: $topology->{'Site'}->{$site}->{'lss'} is not $node_state_match for host $topology->{'Site'}->{$site}->{'mns'} \n");
+            print('check_hana_topology', ' [DEBUG] ', "topology->{Site}->{$site}->{lss}: $topology->{'Site'}->{$site}->{'lss'} , node_state_match: $node_state_match \n");
             $all_online = 0;
             last;
         }
 
         # Check sync_state
         if ($topology->{'Site'}->{$site}->{'srPoll'} eq 'PRIM') {
-            print("\nDEBUG: PRIM topology->{'Site'}->{$site}->{'srPoll'}: $topology->{Site}->{$site}->{srPoll} \n");
+            print('check_hana_topology', ' [DEBUG] ', "PRIM topology->{'Site'}->{$site}->{'srPoll'}: $topology->{Site}->{$site}->{srPoll} \n");
             $prim_count++;
         } elsif ($topology->{'Site'}->{$site}->{'srPoll'} eq 'SOK') {
-            print("\nDEBUG: SOK topology->{'Site'}->{$site}->{'srPoll'}: $topology->{Site}->{$site}->{srPoll} \n");
+            print('check_hana_topology', ' [DEBUG] ', "SOK topology->{'Site'}->{$site}->{'srPoll'}: $topology->{Site}->{$site}->{srPoll} \n");
             $sok_count++;
         }
     }
@@ -275,7 +275,7 @@ sub check_crm_output {
 
 sub get_primary_node {
     my (%args) = @_;
-    croak("Argument <topology_data> missing") unless $args{topology_data};
+    croak("get_primary_node [ERROR] Argument <topology_data> missing") unless $args{topology_data};
     my $topology = $args{topology_data};
     for my $site (keys %{$topology->{Site}}) {
         for my $host (keys %{$topology->{Host}}) {
@@ -299,7 +299,7 @@ sub get_primary_node {
 
 sub get_failover_node {
     my (%args) = @_;
-    croak("Argument <topology_data> missing") unless $args{topology_data};
+    croak("get_failover_node [ERROR] Argument <topology_data> missing") unless $args{topology_data};
     my $topology = $args{topology_data};
     for my $site (keys %{$topology->{'Site'}}) {
         for my $host (keys %{$topology->{'Host'}}) {
