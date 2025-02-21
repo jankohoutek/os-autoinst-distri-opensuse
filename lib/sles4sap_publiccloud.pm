@@ -543,14 +543,15 @@ sub enable_replication {
     die("enable_replication [ERROR] System replication '$hostname' is not offline") if ($self->is_primary_node_online);
 
     my $topology = $self->get_hana_topology();
+    for my $site (keys %{$topology->{'Site'}}) {
+        foreach (qw(srMode opMode)) { die("enable_replication [ERROR] Missing '$_' field in topology output of Site->$site") unless defined($topology->{'Site'}->{$site}->{$_}); }
+        $sr_mode = $topology->{'Site'}->{$site}->{'srMode'} if ($site eq $args{site_name});
+        $op_mode = $topology->{'Site'}->{$site}->{'opMode'} if ($site eq $args{site_name});
+    }
+
     for my $host (keys %{$topology->{'Host'}}) {
         die("enable_replication [ERROR] Missing 'vhost' field in topology output of $host") unless defined($topology->{'Host'}->{$host}->{'vhost'});
-        for my $site (keys %{$topology->{'Site'}}) {
-            foreach (qw(srMode opMode)) { die("enable_replication [ERROR] Missing '$_' field in topology output of Site->$site") unless defined($topology->{'Site'}->{$site}->{$_}); }
-            $remote_host = $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{'site'} ne $site);
-            $sr_mode = $topology->{'Site'}->{$site}->{'srMode'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
-            $op_mode = $topology->{'Site'}->{$site}->{'opMode'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
-        }
+        $remote_host = $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{'site'} ne $args{site_name});
     }
 
     for my $resource (keys %{$topology->{'Resource'}}) {
