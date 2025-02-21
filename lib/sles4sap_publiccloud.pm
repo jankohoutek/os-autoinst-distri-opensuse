@@ -488,8 +488,8 @@ sub cleanup_resource {
 sub check_takeover {
     my ($self) = @_;
     my $hostname = $self->{my_instance}->{instance_id};
-    die("Database on the fenced node '$hostname' is not offline") if ($self->is_hana_database_online);
-    die("System replication '$hostname' is not offline") if ($self->is_primary_node_online);
+    die("check_takeover [ERROR] Database on the fenced node '$hostname' isn't offline") if ($self->is_hana_database_online);
+    die("check_takeover [ERROR] System replication '$hostname' isn't offline") if ($self->is_primary_node_online);
     my $retry_count = 0;
     my $vhost;
     my $sync_state;
@@ -522,7 +522,7 @@ sub check_takeover {
 =head2 enable_replication
     enable_replication([site_name => 'site_a']);
 
-    Re-enables replication on the fenced database node. Database must be offline.
+    Re-enables replication on the previously fenced database node. Database must be offline.
 
 =over
 
@@ -533,30 +533,30 @@ sub check_takeover {
 
 sub enable_replication {
     my ($self, %args) = @_;
-    croak("Argument <site_name> missing") unless $args{site_name};
+    croak("enable_replication [ERROR] Argument <site_name> missing") unless $args{site_name};
     my $hostname = $self->{my_instance}->{instance_id};
     my $remote_host;
     my $sr_mode;
     my $op_mode;
     my $instance_id;
-    die("Database on the fenced node '$hostname' is not offline") if ($self->is_hana_database_online);
-    die("System replication '$hostname' is not offline") if ($self->is_primary_node_online);
+    die("enable_replication [ERROR] Database on the fenced node '$hostname' is not offline") if ($self->is_hana_database_online);
+    die("enable_replication [ERROR] System replication '$hostname' is not offline") if ($self->is_primary_node_online);
 
     my $topology = $self->get_hana_topology();
-    for my $site (keys %{$topology->{'Site'}}) {
-        foreach (qw(srMode opMode)) { die("Missing '$_' field in topology output of Site->$site") unless defined($topology->{'Site'}->{$site}->{$_}); }
-        for my $host (keys %{$topology->{'Host'}}) {
-            die("Missing 'vhost' field in topology output of $host") unless defined($topology->{'Host'}->{$host}->{'vhost'});
+    for my $host (keys %{$topology->{'Host'}}) {
+        die("enable_replication [ERROR] Missing 'vhost' field in topology output of $host") unless defined($topology->{'Host'}->{$host}->{'vhost'});
+        for my $site (keys %{$topology->{'Site'}}) {
+            foreach (qw(srMode opMode)) { die("enable_replication [ERROR] Missing '$_' field in topology output of Site->$site") unless defined($topology->{'Site'}->{$site}->{$_}); }
             $remote_host = $topology->{'Host'}->{$host}->{'vhost'} if ($topology->{'Host'}->{$host}->{'site'} ne $site);
             $sr_mode = $topology->{'Site'}->{$site}->{'srMode'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
-            $op_mode = $topology->{'Site'}->{$site}->{'opMode'};
+            $op_mode = $topology->{'Site'}->{$site}->{'opMode'} if ($topology->{'Host'}->{$host}->{'site'} eq $site);
         }
     }
 
     for my $resource (keys %{$topology->{'Resource'}}) {
         $instance_id = substr($resource, -2) if (substr($resource, 0, 3) eq "mst" or substr($resource, 0, 3) eq "msl");
     }
-    die("Instance number couldn't be determined from the list of resources") unless (defined($instance_id) && $instance_id ne '');
+    die("enable_replication [ERROR] Instance number couldn't be determined from the list of resources") unless (defined($instance_id) && $instance_id ne '');
 
     my $cmd = join(' ', 'hdbnsutil -sr_register',
         '--name=' . $args{site_name},
