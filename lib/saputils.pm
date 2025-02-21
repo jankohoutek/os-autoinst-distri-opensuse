@@ -154,7 +154,7 @@ sub calculate_hana_topology {
             $topology{'Site'}{$script_topology{$host}->{'site'}}{'srPoll'} = $script_topology{$host}->{'sync_state'};
             $topology{'Site'}{$script_topology{$host}->{'site'}}{'lss'} = ($script_topology{$host}->{'node_state'} eq 'online' or $script_topology{$host}->{'node_state'} =~ /[1-9]+/) ? '4' : '1';
             # Host
-            $topology{'Host'}{$host}{'vhost'} = $stcript_topology{$host}->{'vhost'};
+            $topology{'Host'}{$host}{'vhost'} = $script_topology{$host}->{'vhost'};
             $topology{'Host'}{$host}{'site'} = $script_topology{$host}->{'site'};
             $topology{'Host'}{$host}{'srah'} = $script_topology{$host}->{'srah'};
             $topology{'Host'}{$host}{'clone_state'} = $script_topology{$host}->{'clone_state'};
