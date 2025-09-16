@@ -47,7 +47,7 @@ sub run {
     assert_script_run('docker ps');
 
     # Install AWS cli
-    my $aws_version = '2.17.63';
+    my $aws_version = '2.30.3';
     # Download and import the AWS public PGP key
     assert_script_run(sprintf('curl -f -v %s/data/publiccloud/aws.asc -o /tmp/aws.asc', autoinst_url()));
     assert_script_run('gpg --import /tmp/aws.asc');
@@ -76,7 +76,7 @@ sub run {
     assert_script_run("echo . /root/google-cloud-sdk/path.bash.inc >> ~/.bashrc");
     record_info('GCE', script_output('source ~/.bashrc && gcloud version'));
 
-    my $terraform_version = get_var('TERRAFORM_VERSION', '1.5.7');
+    my $terraform_version = get_var('TERRAFORM_VERSION', '1.13.2');
     # Terraform in a container
     my $terraform_wrapper = <<EOT;
 #!/bin/bash -e
@@ -86,7 +86,7 @@ EOT
     validate_script_output("terraform -version", qr/$terraform_version/);
     record_info('Terraform', script_output('terraform -version'));
 
-    my $opentofu_version = get_var('OPENTOFU_VERSION', '1.9.1');
+    my $opentofu_version = get_var('OPENTOFU_VERSION', '1.10.6');
     # opentofu in a container
     my $opentofu_wrapper = <<EOT;
 #!/bin/bash -e
@@ -100,7 +100,7 @@ EOT
     # Ansible install with pip
     # Default version is chosen as low as possible so it run also on SLE12's
     # ANSIBLE_CORE_VERSION should be set only if the different then default one need to be used
-    my $ansible_version = get_var('ANSIBLE_VERSION', '4.10.0');
+    my $ansible_version = get_var('ANSIBLE_VERSION', '9.13.0');
     my $ansible_core_version = get_var('ANSIBLE_CORE_VERSION');
     my $ansible_install_log = '/tmp/ansible_install.log';
 
