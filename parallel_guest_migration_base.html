@@ -1,0 +1,261 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>lib/parallel_guest_migration_base.pm</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rel='stylesheet' href='./style.css' />
+</head>
+
+<body>
+
+
+
+<ul id="index"><li><a href="./index.html"><i>&lt;= Back to file list</i></a></li>
+  <li>
+    <ul>
+      <li><a href="#run">run</a></li>
+      <li><a href="#pre_run_test">pre_run_test</a></li>
+      <li><a href="#run_test">run_test</a></li>
+      <li><a href="#post_run_test">post_run_test</a></li>
+      <li><a href="#get_parallel_role">get_parallel_role</a></li>
+      <li><a href="#create_barrier">create_barrier</a></li>
+      <li><a href="#set_test_run_progress">set_test_run_progress</a></li>
+      <li><a href="#get_test_run_progress">get_test_run_progress</a></li>
+      <li><a href="#get_test_run_result">get_test_run_result</a></li>
+      <li><a href="#do_local_initialization">do_local_initialization</a></li>
+      <li><a href="#do_peer_initialization">do_peer_initialization</a></li>
+      <li><a href="#get_peer_info">get_peer_info</a></li>
+      <li><a href="#config_ssh_pubkey_auth">config_ssh_pubkey_auth</a></li>
+      <li><a href="#check_host_architecture">check_host_architecture</a></li>
+      <li><a href="#check_host_os">check_host_os</a></li>
+      <li><a href="#check_host_virtualization">check_host_virtualization</a></li>
+      <li><a href="#check_host_package">check_host_package</a></li>
+      <li><a href="#check_host_uid">check_host_uid</a></li>
+      <li><a href="#check_host_gid">check_host_gid</a></li>
+      <li><a href="#config_host_shared_storage">config_host_shared_storage</a></li>
+      <li><a href="#config_host_security">config_host_security</a></li>
+      <li><a href="#guest_under_test">guest_under_test</a></li>
+      <li><a href="#initialize_test_result">initialize_test_result</a></li>
+      <li><a href="#save_guest_asset">save_guest_asset</a></li>
+      <li><a href="#restore_guest_asset">restore_guest_asset</a></li>
+      <li><a href="#config_guest_clock">config_guest_clock</a></li>
+      <li><a href="#config_guest_storage">config_guest_storage</a></li>
+      <li><a href="#config_guest_console">config_guest_console</a></li>
+      <li><a href="#start_guest">start_guest</a></li>
+      <li><a href="#catalogue_guest">catalogue_guest</a></li>
+      <li><a href="#maintain_guest">maintain_guest</a></li>
+      <li><a href="#wait_guest">wait_guest</a></li>
+      <li><a href="#wait_guest_ssh">wait_guest_ssh</a></li>
+      <li><a href="#create_guest_network">create_guest_network</a></li>
+      <li><a href="#create_guest_network_bridge_device">create_guest_network_bridge_device</a></li>
+      <li><a href="#create_guest_network_bridge_service">create_guest_network_bridge_service</a></li>
+      <li><a href="#initialize_guest_matrix">initialize_guest_matrix</a></li>
+      <li><a href="#fill_up_array">fill_up_array</a></li>
+      <li><a href="#test_guest_network">test_guest_network</a></li>
+      <li><a href="#test_guest_storage">test_guest_storage</a></li>
+      <li><a href="#do_guest_administration">do_guest_administration</a></li>
+      <li><a href="#virsh_migrate_manual_postcopy">virsh_migrate_manual_postcopy</a></li>
+      <li><a href="#create_junit_log">create_junit_log</a></li>
+      <li><a href="#create_junit_element">create_junit_element</a></li>
+      <li><a href="#check_peer_test_run">check_peer_test_run</a></li>
+      <li><a href="#filter_migration_tests">filter_migration_tests</a></li>
+      <li><a href="#post_fail_hook">post_fail_hook</a></li>
+    </ul>
+  </li>
+</ul><h1>lib/parallel_guest_migration_base.pm</h1>
+
+<h2 id="run">run</h2>
+
+<p>Main subroutine to execute test.</p>
+
+<h2 id="pre_run_test">pre_run_test</h2>
+
+<p>Run before test run starts. Check host healthy state and do logs cleanup.</p>
+
+<h2 id="run_test">run_test</h2>
+
+<p>Actual test is executed in this subroutine which needs to be overloaded in test module which uses this module as base.</p>
+
+<h2 id="post_run_test">post_run_test</h2>
+
+<p>Run after test run finishes. Judge overall test run result and die if test fails.</p>
+
+<h2 id="get_parallel_role">get_parallel_role</h2>
+
+<p>Get role (parent or children) of job based on whether PARALLEL_WITH is given.</p>
+
+<h2 id="create_barrier">create_barrier</h2>
+
+<p>Create barriers to be used for synchronization between peers.</p>
+
+<h2 id="set_test_run_progress">set_test_run_progress</h2>
+
+<p>Any subroutine calls this set_test_run_progress will set TEST_RUN_PROGRESS to the name of FILE::SUBROUTINE. If argument token is not empty, it will be added to the end of the name of FILE::SUBROUTINE.</p>
+
+<h2 id="get_test_run_progress">get_test_run_progress</h2>
+
+<p>Return TEST_RUN_PROGRESS of peer or self job depends on whether argument peer is set (1) or not (0);</p>
+
+<h2 id="get_test_run_result">get_test_run_result</h2>
+
+<p>Return TEST_RUN_RESULT of peer or self job depends on whether argument peer is set (1) or not (0);</p>
+
+<h2 id="do_local_initialization">do_local_initialization</h2>
+
+<p>Initialization information about local host. Source (children) host needs to save ssh key file information used for connecting guest. Sve them into variables which can be shared between source and destination.</p>
+
+<h2 id="do_peer_initialization">do_peer_initialization</h2>
+
+<p>Initialization information about peer. Destination (parent) host needs to obtain ssh key file information used for connecting guest. Save all obtained information into variables and setup passwordless ssh connection to peer host.</p>
+
+<h2 id="get_peer_info">get_peer_info</h2>
+
+<p>Get peer job info and variables.</p>
+
+<h2 id="config_ssh_pubkey_auth">config_ssh_pubkey_auth</h2>
+
+<p>Configure SSH Public Key Authentication to host or guest. Main arguments are address to which ssh connects, whether overwrite (1) or not (0) existing keys, either host (1) or guest (0) on which operation will be done and whether die (1) or not (0) if any failures happen.</p>
+
+<h2 id="check_host_architecture">check_host_architecture</h2>
+
+<p>Check source and destination hosts have the same architecture, otherwise test run can not proceed.</p>
+
+<h2 id="check_host_os">check_host_os</h2>
+
+<p>Check source and destination hosts operating system version. Guest migration can not be done from the newer to the older. Main argument is host role (src or dst).</p>
+
+<h2 id="check_host_virtualization">check_host_virtualization</h2>
+
+<p>Check virtualization modules and services are ready, otherwise test run can not proceed.</p>
+
+<h2 id="check_host_package">check_host_package</h2>
+
+<p>Install necessary packages to facilitate test run down the road. Main argument is packages to be installed.</p>
+
+<h2 id="check_host_uid">check_host_uid</h2>
+
+<p>Check source and destination hosts have the same user id for user qemu. If any discrepancy, set the same group id on both side by using the value provided in _user.</p>
+
+<h2 id="check_host_gid">check_host_gid</h2>
+
+<p>Check source and destination hosts have the same group id for groups qemu, kvm and libvirt. If any discrepancy, set the same group id on both side by using the value provided in _group.</p>
+
+<h2 id="config_host_shared_storage">config_host_shared_storage</h2>
+
+<p>Configure shared nfs storage or libvirt storage pool on server based on whether argument _usepool is set. Other main arguments are type of shared storage, path of exported shared storage, server or client, original source path on server, mount path on server and client and storage pool name.</p>
+
+<h2 id="config_host_security">config_host_security</h2>
+
+<p>Get rid of limitations come from security services and rules which may have impact on connectivity between host and guest.</p>
+
+<h2 id="guest_under_test">guest_under_test</h2>
+
+<p>Obtain all guests to be tested, either from test suite level setting GUEST_LIST or those already on host. Destination host retrieves such information from source. At last, initialize guest_matrix to empty.</p>
+
+<h2 id="initialize_test_result">initialize_test_result</h2>
+
+<p>Initialize hash structure test_result, which contains all tests specified by test suite level setting GUEST_MIGRATION_TEST, to &#39;FAILED&#39; and TEST_RUN_RESULT to empty. The detailed test commands are stored in guest_migration_matrix.</p>
+
+<h2 id="save_guest_asset">save_guest_asset</h2>
+
+<p>Save guest xml config for use down the road. Main arguments are guest to be manipulated , directory in which xml config is stored and whether die (1) or not (0) if any failures happen. This subroutine also calls construct_uri to determine the desired URI to be used if the interested party is not localhost. Please refer to subroutine construct_uri for the arguments related.</p>
+
+<h2 id="restore_guest_asset">restore_guest_asset</h2>
+
+<p>Find or download guest disk and xml config with domain name, restore them to their original names and places. Main arguments are guest to be manipulated, whether die (1) or not (0) if any failures happen, directories in which guest asset and config are stored. This subroutine also calls construct_uri to determine the desired URI to be connected if the interested party is not localhost. Please refer to subroutine construct_uri for the arguments related.</p>
+
+<h2 id="config_guest_clock">config_guest_clock</h2>
+
+<p>Configure guest clock to kvm-clock or tsc. Please refer to guest migration requirements: https://susedoc.github.io/doc-sle/main/single-html/SLES-virtualization/#libvirt-admin-live-migration-requirements Main arguments are guest to be configured, directory in which guest xml config is stored and whether die (1) or not (0) if any failures happen.</p>
+
+<h2 id="config_guest_storage">config_guest_storage</h2>
+
+<p>Configure guest storage cache mode to none. Please refer to guest migration requirements: https://susedoc.github.io/doc-sle/main/single-html/SLES-virtualization/#libvirt-admin-live-migration-requirements Main arguments are guest to be configured, directory in which guest xml config is stored and whether die (1) or not (0) if any failures happen.</p>
+
+<h2 id="config_guest_console">config_guest_console</h2>
+
+<p>Configure serial console for guest by using libguestfs tools. Main arguments are guest to be configured, directory in which guest xml config is stored and whether die (1) or not (0) if any failures happen. This subroutine also calls construct_uri to determine the desired URI to be connected if the interested party is not localhost. Please refer to subroutine construct_uri for the arguments related.</p>
+
+<h2 id="start_guest">start_guest</h2>
+
+<p>Start guest by using virsh start and wait for it up and running if necessary. Main arguments are guest to start, virtualization management tool to be used, whether restart (1) or not (0), whether die (1) or not (0) if any failures happen and whether wait (1) or not (0) for guest up and running. This subroutine also calls construct_uri to determine the desired URI to be connected if the interested party is not localhost. Please refer to subroutine construct_uri for the arguments related.</p>
+
+<h2 id="catalogue_guest">catalogue_guest</h2>
+
+<p>Call register_guest_name to catalogue guest. Multiple guests and corresponding ip addresses and domain names are supported as strings separated by space. And other arguments include _keyfile (key file for passwordless ssh connection) and _usedns (0 or 1). Call croak to die if subroutine fails and argument _die is set.</p>
+
+<h2 id="maintain_guest">maintain_guest</h2>
+
+<p>Call manage_guest_service to manage service, target or socket unit in guest system. Call virt_autotest::virtual_network_utils::check_guest_network_address to get guest ip address. Multiple guests and corresponding ip addresses are supported as strings separated by space. Other arguments include _keyfile (key file for passwordless ssh connection), _operation (systemctl subcommand) and _unit to be manipulated. Call croak to die if subroutine fails and _die is set.</p>
+
+<h2 id="wait_guest">wait_guest</h2>
+
+<p>Call virt_autotest::virtual_network_utils::check_guest_network_address to get guest ip address. Wait for guest up and running after obtaining ip address, and calling wait_guest_ssh. Main arguments are guest to wait, whether check ip address (1) or not (0) and whether die (1) or not (0) if any failures happen.</p>
+
+<h2 id="wait_guest_ssh">wait_guest_ssh</h2>
+
+<p>Detect whether guest ssh port is open by using nc. If ssh port is open judging by ip address, then catalogue and maintain guest based on whether _usedns is set. If _usedns is set, setting guest FQDN and restart network service on destination host. If _usedns is not set, only writing guest and ip address into file /etc/hosts for convenient purpose. Other arguments are guest to be involved, times of retry, guest domain name and whether die (1) or not (0) if any failures happen.</p>
+
+<h2 id="create_guest_network">create_guest_network</h2>
+
+<p>Create network, type of which is either network or bridge, to be used with guest. In order to make this work consistent, data in hash structure guest_network_matrix will be used for network creating, and the network name should begin with &quot;vn_&quot; followed by &quot;nat&quot;, &quot;route&quot; or &quot;host&quot; if network type is &quot;network&quot;, or be &quot;br0&quot; or &quot;br123&quot; if network type is &quot;bridge&quot;. For guest using static ip address, network address info is derived from guest ip address. Main arguments are guest to be served, the directory in which network xml config will be stored and whether die (1) or not (0) if any error.This subroutine also calls construct_uri to determine the desired URI to be connected if the interested party is not localhost. Please refer to subroutine construct_uri for the arguments related. For network type of vnet, calling subroutine config_domain_resolver at the end if argument _usedns is set. Calling subroutines in lib/virt_autotest/virtual_network_utils.pm: config_virtual_network_device create_guest_network_bridge_device create_guest_network_bridge_service config_domain_resolver to do the actual work.</p>
+
+<h2 id="create_guest_network_bridge_device">create_guest_network_bridge_device</h2>
+
+<p>Create network bridge device br0 (host bridge) or brXXX (internal bridge) by using derived information from host or in data structure %_guest_matrix. This should be called in create_guest_network. This subroutine calls subroutines in lib/virt_autotest/virtual_network_utils.pm: write_network_bridge_device_config activate_network_bridge_device to do the actual work.</p>
+
+<h2 id="create_guest_network_bridge_service">create_guest_network_bridge_service</h2>
+
+<p>Create DHCP/DNS service if using brXXX (internal bridge). If _usedns is set, also configure full DNS support by calling subroutine config_domain_resolver. This is supposed to be called in create_guest_network.</p>
+
+<h2 id="initialize_guest_matrix">initialize_guest_matrix</h2>
+
+<p>Initialize guest matrix and associated variables. If variables are not empty, then update them. These variables will be shared between source and destination host to facilitate collaborative operations. On source host, putting values of variables into corresponding arrays which will be filled up or updated by calling fill_up_array. At last, storing updated values in arrays in variables. On destination host, initialize or update variables by retrieving corresponding information from source.</p>
+
+<h2 id="fill_up_array">fill_up_array</h2>
+
+<p>Fill up or update existing array which contains information about running guest, mac address, ip address, network type, network name, network mode and use static ip (yes) or not (no). Updated array will be used to set corresponding variables, for example, GUEST_UNDER_TEST_IPADDR. Main arguments are reference to the array, guest to be involved and variable related. Guest attribute name is derived from corresponding variable, for example, guest_matrix{guest}{netmode} is derived from GUEST_UNDER_TEST_NETMODE. At last, array will be filled up or updated by the latest guest_matrix{guest}{attribute}.</p>
+
+<h2 id="test_guest_network">test_guest_network</h2>
+
+<p>Test networking accessibility of guest. All guests should can be reached on host and can reach outside from inside. The only guest that can be reached from outside host is the one uses host bridge network. For guest having FQDN and _usedns is set, it should communicate by using its domain name directly. Main arguments are guest to be tested and whether die (1) or not (0) if any error.</p>
+
+<h2 id="test_guest_storage">test_guest_storage</h2>
+
+<p>Test whether writing into guest disk is successful and return the result. Main arguments are guest to be tested and whether die (1) or not (0) if any error.</p>
+
+<h2 id="do_guest_administration">do_guest_administration</h2>
+
+<p>Perform basic administration on guest and return overall result. Main arguments are guest to be manipulated, virttool (virsh or xl) to be used, directory in which original guest config file resides and whether die (1) or not (0) if any error. This subroutine also calls construct_uri to determine the desired URI to be connected if the interested party is not localhost. Please refer to subroutine construct_uri for the arguments related.</p>
+
+<h2 id="virsh_migrate_manual_postcopy">virsh_migrate_manual_postcopy</h2>
+
+<p>Perform manual postcopy guest migration which needs an extra command to be executed alongside main migration command. The return value of this extra command indicates whether it is a successful manual postcopy guest migration. Main arguments are guest to be migrated, main migraiton command and whether die (1) or not (0) if any error.</p>
+
+<h2 id="create_junit_log">create_junit_log</h2>
+
+<p>Create xml file to be parsed by parse_junit_log by using XML::LibXML. The data source is a hash structure like test_result which stores test results and some other side information like product and time.</p>
+
+<h2 id="create_junit_element">create_junit_element</h2>
+
+<p>Create xml elements that may have attributes, text or child and return array of created elements. Accepted arguments are references to xml doc object, parent of element to be created, array of elements to be created, array of attributes of elements and array of texts of elements. The order in which elements appear in array of elements to be created should be the same as those respective attributes and texts in their arrays.</p>
+
+<h2 id="check_peer_test_run">check_peer_test_run</h2>
+
+<p>Check progress of test run of peer job. This subroutine is called to verify whether peer job is destined to fail or not and return its test run result. This is usually called by paired job that is already in post_fail_hook to wait for peer job if it already failed or is about to fail, so the peer job can finish operations instead of being cancelled due to paired job fails and terminates. This can be achieved simply by barrier_wait on certain lock by both jobs if the peer fails as well. There are situations in which peer job needs to move pass current running subroutines like, do_guest_migration or post_run_test, before entering into post_fail_hook, so it is necessary to wait a period before having the final resolution. But if peer job still remains any earlier steps, it is not meaningful to wait anymore because locks ahead.</p>
+
+<h2 id="filter_migration_tests">filter_migration_tests</h2>
+
+<p>Filters migration tests based on specified criteria.</p>
+
+<h2 id="post_fail_hook">post_fail_hook</h2>
+
+<p>Set TEST_RUN_RESULT to FAILED, create junit log and collect logs.</p>
+
+
+</body>
+
+</html>
+
+
