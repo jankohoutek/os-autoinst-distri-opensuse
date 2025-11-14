@@ -54,6 +54,7 @@ my $disable_firewall = 0;
 
 sub setup_pxe_server {
     return if $pxe_server_set;
+    record_info 'PXE server setup';
 
     $setup_script .= "curl -f -v " . autoinst_url . "/data/supportserver/pxe/setup_pxe.sh  > setup_pxe.sh\n";
     my $ckrnl;
@@ -76,6 +77,7 @@ sub setup_pxe_server {
 
 sub setup_http_server {
     return if $http_server_set;
+    record_info 'HTTP server setup';
 
     $setup_script .= "systemctl stop apache2\n";
     $setup_script .= "curl -f -v " . autoinst_url . "/data/supportserver/http/apache2  >/etc/sysconfig/apache2\n";
@@ -86,12 +88,14 @@ sub setup_http_server {
 
 sub setup_ftp_server {
     return if $ftp_server_set;
+    record_info 'FTP server setup';
 
     $ftp_server_set = 1;
 }
 
 sub setup_tftp_server {
     return if $tftp_server_set;
+    record_info 'TFTP server setup';
     # atftpd is available only on older products (e.g.: present on SLE-12, gone on SLE-15)
     # FIXME: other options besides RPMs atftp, tftp not considered. For SLE-15 this is enough.
     my $tftp_service = script_output("rpm --quiet -q atftp && echo atftpd || echo tftp", type_command => 1);
@@ -136,7 +140,8 @@ sub setup_networks {
 }
 
 sub setup_dns_server {
-    return if $dns_server_set;
+    preturn if $dns_server_set;
+    record_info 'DNS server setup';
 
     my $named_url = autoinst_url . '/data/supportserver/named';
     $setup_script .= qq@
@@ -238,6 +243,8 @@ sub dhcpd_conf_generation {
 sub setup_dhcp_server {
     my ($dns, $pxe, $mtu) = @_;
     return if $dhcp_server_set;
+    record_info 'DHCP server setup';
+
     my $net_conf = parse_network_configuration();
 
     $setup_script .= "systemctl stop dhcpd\n";
@@ -264,6 +271,7 @@ sub setup_dhcp_server {
 
 sub setup_ssh_server {
     return if $ssh_server_set;
+    record_info 'SSH server setup';
 
     $setup_script .= "yast2 firewall services add zone=EXT service=service:sshd\n";
     $setup_script .= "systemctl restart sshd\n";
@@ -274,6 +282,7 @@ sub setup_ssh_server {
 
 sub setup_ntp_server {
     return if $ntp_server_set;
+    record_info 'NTP server setup';
 
     $setup_script .= "yast2 firewall services add zone=EXT service=service:ntp\n";
     $setup_script .= "echo 'server pool.ntp.org' >> /etc/ntp.conf\n";
@@ -284,6 +293,7 @@ sub setup_ntp_server {
 
 sub setup_xvnc_server {
     return if $xvnc_server_set;
+    record_info 'XVNC server setup';
 
     if (check_var('REMOTE_DESKTOP_TYPE', 'persistent_vnc')) {
         zypper_call('ar http://openqa.suse.de/assets/repo/fixed/SLE-12-SP3-Server-DVD-x86_64-GM-DVD1/ sles12sp3dvd1_repo');
@@ -317,6 +327,7 @@ sub setup_xvnc_server {
 
 sub setup_xdmcp_server {
     return if $xdmcp_server_set;
+    record_info 'XDMCP server setup';
 
     if (check_var('REMOTE_DESKTOP_TYPE', 'xdmcp_xdm')) {
         assert_script_run "sed -i -e 's|^DISPLAYMANAGER=.*|DISPLAYMANAGER=\"xdm\"|' /etc/sysconfig/displaymanager";
@@ -333,10 +344,11 @@ sub setup_xdmcp_server {
 }
 
 sub setup_iscsi_server {
-    zypper_call('ar http://openqa.suse.de/assets/repo/fixed/SLE-12-SP3-Server-DVD-x86_64-GM-DVD1/ sles12sp3dvd1_repo');
+    return if $iscsi_server_set;
+    record_info 'iSCSI server setup';
+    zypper_call('ar http://openqa.suse.de/assets/repo/fixed/SLE-12-SP3-Server-DVD-x86_64-GM-DVD1 sles12sp3dvd1_repo');
     zypper_call('ref');
     zypper_call('in targetcli');
-    return if $iscsi_server_set;
 
     # If no LUN number is specified we must die!
     my $num_luns = get_required_var('NUMLUNS');
@@ -398,6 +410,7 @@ sub setup_iscsi_server {
 
 sub setup_iscsi_tgt_server {
     return if $iscsi_tgt_server_set;
+    record_info 'iSCSI TGT server setup';
 
     systemctl 'start tgtd';
 
@@ -432,6 +445,7 @@ sub setup_iscsi_tgt_server {
 }
 
 sub setup_aytests {
+    record_info 'AYTESTS server setup';
     # install the aytests-tests package and export the tests over http
     my $aytests_repo = get_var("AYTESTS_REPO_BRANCH", 'master');
     $setup_script .= "
@@ -461,6 +475,7 @@ sub setup_aytests {
 }
 
 sub setup_stunnel_server {
+    record_info 'STUNNEL server setup';
     zypper_call('in stunnel');
     configure_stunnel(1);
     assert_script_run 'mkdir -p ~/.vnc/';
@@ -475,6 +490,7 @@ sub setup_stunnel_server {
 }
 
 sub setup_mariadb_server {
+    record_info 'MariaDB server setup';
     my $ip = '10.0.2.%';
     my $passwd = 'suse';
 
@@ -495,6 +511,7 @@ sub setup_mariadb_server {
 }
 
 sub setup_nfs_server {
+    record_info 'NFS server setup';
     my $nfs_mount = "/nfs/shared";
     my $nfs_permissions = "rw,sync,no_root_squash";
 
