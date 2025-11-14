@@ -347,7 +347,6 @@ sub setup_iscsi_server {
     return if $iscsi_server_set;
     record_info 'iSCSI server setup';
     zypper_call('ar http://openqa.suse.de/assets/repo/fixed/SLE-12-SP3-Server-DVD-x86_64-GM-DVD1 sles12sp3dvd1_repo');
-    zypper_call('ref');
     zypper_call('in targetcli');
 
     # If no LUN number is specified we must die!
