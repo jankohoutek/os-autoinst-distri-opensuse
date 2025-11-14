@@ -343,16 +343,19 @@ sub setup_iscsi_server {
 
     # Integer part of the LUN size is keep and can't be lesser than 1GB
     my $lun_size = int($hdd_lun_size / $num_luns);
-    die "iSCSI LUN cannot be lesser than 1GB!" if ($lun_size < 1);
+    die 'iSCSI LUN cannot be lesser than 1GB!' if ($lun_size < 1);
 
     # Are we using virtio or virtio-scsi?
     my $hdd_lun = script_output "ls /dev/[sv]db";
-    die "detection of disk for iSCSI LUN failed" unless $hdd_lun;
+    die 'detection of disk for iSCSI LUN failed' unless $hdd_lun;
+
+    (my $name_lun = $hdd_lun) =~ tr/\//_/;
+    $name_lun =~ s/^_//;
 
     # Needed if a firewall is configured
     script_run 'yast2 firewall services add zone=EXT service=service:target', 200;
 
-    # Create the iSCSI LUN
+    # Create the partition devices for the iSCSI LUN
     script_run "parted --align optimal --wipesignatures --script $hdd_lun mklabel gpt";
     my $start = 0;
     my $size = 0;
@@ -363,78 +366,28 @@ sub setup_iscsi_server {
         script_run "parted --script $hdd_lun mkpart primary ${start}MiB ${size}";
     }
 
-    # The easiest way (really!?) to configure LIO is with YaST
-    # Code grab and adapted from tests/iscsi/iscsi_server.pm
-    script_run("yast2 iscsi-lio-server; echo yast2-iscsi-lio-server-status-\$? > /dev/$serialdev", 0);
-    assert_screen 'iscsi-target-overview-service-tab', 60;
-    send_key 'alt-t';    # go to target tab
-    assert_screen 'iscsi-target-overview-empty-target-tab';
-    send_key 'alt-a';    # add target
-    assert_screen 'iscsi-target-overview-add-target-tab';
+    # The easiest way to configure LIO is not with YaST obut with targetcli
 
-    # Wait for the Identifier field to change from 'test' value to the correct one
-    # We could simply use a 'sleep' here but it's less good
-    wait_screen_change(undef, 10);
-
-    # Select Target field
-    send_key 'alt-t';
-    wait_still_screen 3;
-
-    # Change Target value
-    for (1 .. 40) { send_key 'backspace'; }
-    type_string 'iqn.2016-02.de.openqa';
-    wait_still_screen 3;
-
-    # Select Identifier field
-    send_key 'alt-f';
-    wait_still_screen 3;
-
-    # Change Identifier value
-    for (1 .. 40) { send_key 'backspace'; }
-    wait_still_screen 3;
-    type_string '132';
-    wait_still_screen 3;
-
-    # Un-check Use Authentication
-    send_key 'alt-u';
-    wait_still_screen 3;
+    # Creation of the iSCSI taget
+    assert_script_run('targetcli /iscsi create iqn.2016-02.de.openqa:132');
 
     # Add LUNs
     for (my $num_lun = 1; $num_lun <= $num_luns; $num_lun++) {
-        send_key 'alt-a';
-
-        # Send alt-p until LUN path is selected
-        send_key_until_needlematch 'iscsi-target-LUN-path-selected', 'alt-p', 6, 5;
-        type_string "$hdd_lun$num_lun";
-        assert_screen 'iscsi-target-LUN-support-server';
-        send_key 'alt-o';
-        wait_still_screen 3;
+        assert_script_run("targetcli /backstores/block create name=$name_lun$num_lun dev=$hdd_lun$num_lun");
+        assert_script_run("targetcli /iscsi/iqn.2016-02.de.openqa:132/tpg1/luns create storage_object=/backstores/block/$name_lun$num_lun");
+        assert_script_run('targetcli /iscsi/iqn.2016-02.de.openqa:132/tpg1/portals create 0.0.0.0 ip_port=3260');
     }
-    assert_screen 'iscsi-target-overview';
-    send_key 'alt-n';
-    assert_screen('iscsi-target-client-setup', 120);
-    send_key 'alt-n';
-    wait_still_screen 3;
-
-    # No client configured, it's "normal"
-    send_key 'alt-y';
-    assert_screen 'iscsi-target-overview-target-tab';
-
-    # iSCSI LIO configuguration is finished
-    send_key 'alt-f';
-    wait_serial('yast2-iscsi-lio-server-status-0', 90) || die "'yast2 iscsi-lio-server' didn't finish";
 
     # Now we need to enable iSCSI Demo Mode
     # With this mode, we don't need to manage iSCSI initiators
     # It's OK for a test/QA system, but of course not for a production one!
-    systemctl('stop target');
-    my $cmd = "sed -i -e '/\\/demo_mode_write_protect\$/s/^echo 1/echo 0/'
-                       -e '/\\/cache_dynamic_acls\$/s/^echo 0/echo 1/'
-                       -e '/\\/generate_node_acls\$/s/^echo 0/echo 1/'
-                       -e '/\\/authentication\$/s/^echo 1/echo 0/' /etc/target/lio_setup.sh";
-    $cmd =~ s/\n/ /g;
-    script_run($cmd);
+    assert_script_run('targetcli iscsi/iqn.2016-02.de.openqa:132/tpg1 set attribute demo_mode_write_protect=0 cache_dynamic_acls=1 generate_node_acls=1 authentication=0');
+
+    # Start and enable iSCSI taget in systemctl
     systemctl('enable --now target');
+
+    # Print iSCSI tarets configuration to the console
+    script_run('targetcli ls');
     select_console 'root-console';
 
     $iscsi_server_set = 1;
