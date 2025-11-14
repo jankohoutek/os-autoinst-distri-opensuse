@@ -140,7 +140,7 @@ sub setup_networks {
 }
 
 sub setup_dns_server {
-    preturn if $dns_server_set;
+    return if $dns_server_set;
     record_info 'DNS server setup';
 
     my $named_url = autoinst_url . '/data/supportserver/named';
