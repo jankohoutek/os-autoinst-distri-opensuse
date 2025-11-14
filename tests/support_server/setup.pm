@@ -333,6 +333,7 @@ sub setup_xdmcp_server {
 }
 
 sub setup_iscsi_server {
+    zypper_call('in targetcli');
     return if $iscsi_server_set;
 
     # If no LUN number is specified we must die!
