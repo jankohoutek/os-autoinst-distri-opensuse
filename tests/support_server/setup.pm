@@ -333,6 +333,8 @@ sub setup_xdmcp_server {
 }
 
 sub setup_iscsi_server {
+    zypper_call('ar http://openqa.suse.de/assets/repo/fixed/SLE-12-SP3-Server-DVD-x86_64-GM-DVD1/ sles12sp3dvd1_repo');
+    zypper_call('ref');
     zypper_call('in targetcli');
     return if $iscsi_server_set;
 
