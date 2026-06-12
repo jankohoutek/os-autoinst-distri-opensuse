@@ -34,6 +34,7 @@
       <li><a href="#zypper_call">zypper_call</a></li>
       <li><a href="#zypper_enable_install_dvd">zypper_enable_install_dvd</a></li>
       <li><a href="#zypper_ar">zypper_ar</a></li>
+      <li><a href="#zypper_version_cmp">zypper_version_cmp</a></li>
       <li><a href="#fully_patch_system">fully_patch_system</a></li>
       <li><a href="#ssh_fully_patch_system">ssh_fully_patch_system</a></li>
       <li><a href="#minimal_patch_system">minimal_patch_system</a></li>
@@ -128,6 +129,7 @@
       <li><a href="#inspect_existing_issue">inspect_existing_issue</a></li>
       <li><a href="#dump_tasktrace">dump_tasktrace</a></li>
       <li><a href="#show_all_disks">show_all_disks</a></li>
+      <li><a href="#render_scc_url">render_scc_url</a></li>
     </ul>
   </li>
 </ul><h1>lib/utils.pm</h1>
@@ -305,6 +307,14 @@ remain: boolean
 
 <pre><code>zypper_ar(&#39;http://dist.nue.suse.com/ibs/QA:/Head/SLE-15-SP1&#39;, name =&gt; &#39;qa-head);
 zypper_ar(&#39;https://download.opensuse.org/repositories/devel:/kubic/openSUSE_Tumbleweed/devel:kubic.repo&#39;, no_gpg_check =&gt; 1, priority =&gt; 90);</code></pre>
+
+<h2 id="zypper_version_cmp">zypper_version_cmp</h2>
+
+<pre><code>zypper_version_cmp($ver1, $ver2);</code></pre>
+
+<p>Compare the versions supplied as arguments and tell whether version1 is older or newer than version2 or the two version strings match.</p>
+
+<p>The default output is in human-friendly form. If --terse global option is used, the result is an integer number, negative/positive if version1 is older/newer than version2, zero if they match.</p>
 
 <h2 id="fully_patch_system">fully_patch_system</h2>
 
@@ -848,7 +858,7 @@ script_finish_io(exitcode =&gt; [12]);</code></pre>
 
 <pre><code>remove_efiboot_entry(boot_entry =&gt; &#39;entry&#39;);</code></pre>
 
-<p>Remove provided efiboot entry name by its corresponding boot number.</p>
+<p>Remove provided efiboot entry name by its corresponding boot number. All entries with this name will be removed.</p>
 
 <h2 id="empty_usb_disks">empty_usb_disks</h2>
 
@@ -933,12 +943,11 @@ script_finish_io(exitcode =&gt; [12]);</code></pre>
 <h2 id="inspect_existing_issue">inspect_existing_issue</h2>
 
 <pre><code>inspect_existing_issue(issuefile =&gt; &#39;relative path of json files to data folder,
-    localfile =&gt; &#39;absolute path of downloaded local files, issue =&gt; &#39;issues to
-    be inspected separated by double hash ##&#39;, distri =&gt; &#39;comma separated issue
-    distri&#39;, version =&gt; &#39;comma separated issue version&#39;, mode =&gt; &#39;comma separted
-    issue mode&#39;)</code></pre>
+    issue =&gt; &#39;issues to be inspected separated by double hash ##&#39;, distri =&gt; 
+    &#39;comma separated issue distri&#39;, version =&gt; &#39;comma separated issue version&#39;,
+    mode =&gt; &#39;comma separted issue mode&#39;)</code></pre>
 
-<p>Inspect whether concerned issues are bug, feature or can be ignore. Only record bug as soft failure. Argument issuefile can take mulitple json files separated by comma which are used as reference to compare, localfile can take multiple local files separated by comma which are corresponding downloaded and stored files from issuefile, issue takes issues to be inspected separated by double hash ##. User can also use setting JSON_REFERRAL_FILE to pass in comma separated json file path. Settings ISSUE_DISTRI, ISSUE_VERSION and ISSUE_MODE can also be used to specify the real distri, version and mode with which inspected issue is associated, they are separated by comma if multiple values are provided, for example, ISSUE_MODE= (&#39;transactional&#39;, &#39;traditional&#39;). Key &#39;modes&#39; is not mandatory in reference file data/virt_autotest/existing_issues_referral.json, if it does not exist or empty, any mode is matched. User can also pass in by using arguments distri, version and mode. Generally speaking, first find a distri match in all products of an issue by iteraing disris in ISSUE_DISTRI, second find a version match in all versions of a product by iterating versions in ISSUE_VERSION if there is a distri match( namley @existing_issue_version is not empty), at the last find a mode match in all modes of an issue by iteraing modes in ISSUE_MODE(empty @existing_issue_mode means any mode will be matched). There will be a final successful match if issue matches description, distri/version and mode all matched.</p>
+<p>Inspect whether concerned issues are bug, feature or can be ignore. Only record bug as soft failure. Argument issuefile can take mulitple json files separated by comma which are used as reference to compare, issue takes issues to be inspected separated by double hash ##. User can also use setting JSON_REFERRAL_FILE to pass in comma separated json file path. Settings ISSUE_DISTRI, ISSUE_VERSION and ISSUE_MODE can also be used to specify the real distri, version and mode with which inspected issue is associated, they are separated by comma if multiple values are provided, for example, ISSUE_MODE=(&#39;transactional&#39;, &#39;traditional&#39;). Key &#39;modes&#39; is not mandatory in reference file data/virt_autotest/existing_issues_referral.json, if it does not exist or empty, any mode is matched. User can also pass in by using arguments distri, version and mode. Generally speaking, first find a distri match in all products of an issue by iteraing disris in ISSUE_DISTRI, second find a version match in all versions of a product by iterating versions in ISSUE_VERSION if there is a distri match(namley @existing_issue_version is not empty), at the last find a mode match in all modes of an issue by iteraing modes in ISSUE_MODE (empty @existing_issue_mode means any mode will be matched). There will be a final successful match if issue matches description, distri/version and mode all matched.</p>
 
 <h2 id="dump_tasktrace">dump_tasktrace</h2>
 
@@ -951,6 +960,10 @@ script_finish_io(exitcode =&gt; [12]);</code></pre>
 <h2 id="show_all_disks">show_all_disks</h2>
 
 <p>Output information about all disks on system to facilitate convenient and quick information lookup on the fly without manual intervention.</p>
+
+<h2 id="render_scc_url">render_scc_url</h2>
+
+<p>The SCC_URL is always generated from BUILD which might raise issue for image testing which has different BUILD number but still uses the same software repositories used by media from fresh installation. So registration url for image testing needs to be tweaked a bit to also use the same BUILD number as fresh installation, for example, starting from SLES 16.1 which provides transactional pre-built images, these images have different BUILD number but still use SLES 16.1 repositories build of which are reflected in BUILD_SLE.</p>
 
 
 </body>
